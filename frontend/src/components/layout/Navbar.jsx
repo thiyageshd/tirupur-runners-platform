@@ -7,15 +7,19 @@ const NAV_LINKS = [
   { to: '/', label: 'Home' },
   { to: '/about', label: 'About' },
   { to: '/events', label: 'Events' },
-  { to: '/register', label: 'Join Us', guestOnly: true },
   { to: '/contact', label: 'Contact' },
 ]
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
-  const { user, logout } = useAuthStore()
+  const { user, logout, settings } = useAuthStore()
   const location = useLocation()
   const navigate = useNavigate()
+
+  const onMembersPath = location.pathname.startsWith('/members')
+
+  const showLogin    = onMembersPath && settings?.show_login    !== 'false'
+  const showRegister = onMembersPath && settings?.show_register !== 'false'
 
   const handleLogout = () => {
     logout()
@@ -46,7 +50,7 @@ export default function Navbar() {
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-1">
-          {NAV_LINKS.filter(link => !(link.guestOnly && user)).map((link) => (
+          {NAV_LINKS.map((link) => (
             <Link
               key={link.to}
               to={link.to}
@@ -71,7 +75,7 @@ export default function Navbar() {
                 </Link>
               )}
               <Link
-                to="/dashboard"
+                to="/members/dashboard"
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-sm font-medium transition-colors"
               >
                 <User size={14} /> {user.full_name.split(' ')[0]}
@@ -85,8 +89,8 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link to="/login" className="btn-outline py-2 text-sm">Login</Link>
-              <Link to="/register" className="btn-primary py-2 text-sm">Register</Link>
+              {showLogin    && <Link to="/members/login"    className="btn-outline py-2 text-sm">Login</Link>}
+              {showRegister && <Link to="/members/register" className="btn-primary py-2 text-sm">Register</Link>}
             </>
           )}
         </div>
@@ -100,7 +104,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-1">
-          {NAV_LINKS.filter(link => !(link.guestOnly && user)).map((link) => (
+          {NAV_LINKS.map((link) => (
             <Link
               key={link.to}
               to={link.to}
@@ -110,10 +114,10 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          {!user && (
+          {!user && (showLogin || showRegister) && (
             <div className="flex gap-2 mt-2 pt-2 border-t border-gray-100">
-              <Link to="/login" onClick={() => setOpen(false)} className="btn-outline flex-1 py-2 text-sm">Login</Link>
-              <Link to="/register" onClick={() => setOpen(false)} className="btn-primary flex-1 py-2 text-sm">Register</Link>
+              {showLogin    && <Link to="/members/login"    onClick={() => setOpen(false)} className="btn-outline flex-1 py-2 text-sm">Login</Link>}
+              {showRegister && <Link to="/members/register" onClick={() => setOpen(false)} className="btn-primary flex-1 py-2 text-sm">Register</Link>}
             </div>
           )}
           {user && (

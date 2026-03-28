@@ -15,8 +15,8 @@ import useInactivityLogout from './hooks/useInactivityLogout'
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { token, user } = useAuthStore()
-  if (!token) return <Navigate to="/login" replace />
-  if (adminOnly && user && !user.is_admin) return <Navigate to="/dashboard" replace />
+  if (!token) return <Navigate to="/members/login" replace />
+  if (adminOnly && user && !user.is_admin) return <Navigate to="/members/dashboard" replace />
   return children
 }
 
@@ -28,12 +28,22 @@ function AppRoutes() {
       <Route path="/about" element={<AboutPage />} />
       <Route path="/events" element={<EventsPage />} />
       <Route path="/contact" element={<ContactPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/dashboard" element={
+
+      {/* Members section */}
+      <Route path="/members" element={<Navigate to="/members/login" replace />} />
+      <Route path="/members/login" element={<LoginPage />} />
+      <Route path="/members/register" element={<RegisterPage />} />
+      <Route path="/members/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/members/dashboard" element={
         <ProtectedRoute><DashboardPage /></ProtectedRoute>
       } />
+
+      {/* Legacy redirects */}
+      <Route path="/login" element={<Navigate to="/members/login" replace />} />
+      <Route path="/register" element={<Navigate to="/members/register" replace />} />
+      <Route path="/dashboard" element={<Navigate to="/members/dashboard" replace />} />
+      <Route path="/forgot-password" element={<Navigate to="/members/forgot-password" replace />} />
+
       <Route path="/admin" element={
         <ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>
       } />
@@ -43,9 +53,10 @@ function AppRoutes() {
 }
 
 export default function App() {
-  const { token, fetchMe } = useAuthStore()
+  const { token, fetchMe, fetchSettings } = useAuthStore()
 
   useEffect(() => {
+    fetchSettings()
     if (token) fetchMe()
   }, [])
 

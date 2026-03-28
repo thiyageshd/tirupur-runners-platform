@@ -15,6 +15,9 @@ DEFAULT_SETTINGS = {
     "run_location": "Tirupur Collectorate",
     "run_day_time": "Every Sunday, 5:30 AM",
     "maps_link": "https://maps.google.com/?q=Tirupur+Collectorate,Tirupur,Tamil+Nadu",
+    "show_login": "true",
+    "show_register": "true",
+    "show_join_club": "true",
 }
 
 

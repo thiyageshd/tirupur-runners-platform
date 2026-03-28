@@ -26,7 +26,7 @@ export default function DashboardPage() {
   const [photoError, setPhotoError] = useState('')
 
   useEffect(() => {
-    if (!user) { navigate('/login'); return }
+    if (!user) { navigate('/members/login'); return }
     fetchMembership()
   }, [user])
 

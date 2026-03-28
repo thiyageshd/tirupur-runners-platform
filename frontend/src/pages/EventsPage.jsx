@@ -1,5 +1,6 @@
 import { Calendar, MapPin, Clock, ArrowRight, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAuthStore } from '../store/authStore'
 
 const MAPS_URL = 'https://maps.google.com/?q=Tirupur+Collectorate,Tirupur,Tamil+Nadu'
 
@@ -48,6 +49,9 @@ const BADGE_COLORS = {
 }
 
 export default function EventsPage() {
+  const { settings } = useAuthStore()
+  const showJoin = settings?.show_join_club !== 'false'
+
   return (
     <div className="min-h-screen pt-24 pb-16 px-4">
       <div className="max-w-4xl mx-auto">
@@ -108,9 +112,11 @@ export default function EventsPage() {
             Want to join these runs?
           </h2>
           <p className="text-gray-500 mb-6">Become a member — ₹2,000 for new members · ₹1,500 renewal — and get access to all events.</p>
-          <Link to="/register" className="btn-primary">
-            Register Now <ArrowRight size={16} />
-          </Link>
+          {showJoin && (
+            <Link to="/members/register" className="btn-primary">
+              Register Now <ArrowRight size={16} />
+            </Link>
+          )}
         </div>
       </div>
     </div>

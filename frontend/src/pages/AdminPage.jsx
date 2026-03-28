@@ -60,8 +60,8 @@ export default function AdminPage() {
   const [settingsSaved, setSettingsSaved] = useState(false)
 
   useEffect(() => {
-    if (!user) { navigate('/login'); return }
-    if (!user.is_admin) { navigate('/dashboard'); return }
+    if (!user) { navigate('/members/login'); return }
+    if (!user.is_admin) { navigate('/members/dashboard'); return }
     loadData()
     loadSettings()
   }, [user])
@@ -566,23 +566,52 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {[
-                  { key: 'contact_email', label: 'Contact Email', type: 'email' },
-                  { key: 'contact_phone', label: 'Contact Phone', type: 'tel' },
-                  { key: 'run_location', label: 'Run Location', type: 'text' },
-                  { key: 'run_day_time', label: 'Run Day & Time', type: 'text' },
-                  { key: 'maps_link', label: 'Google Maps Link', type: 'url' },
-                ].map(({ key, label, type }) => (
-                  <div key={key}>
-                    <label className="block text-xs font-medium text-gray-500 mb-1.5">{label}</label>
-                    <input
-                      type={type}
-                      className="input-field"
-                      value={siteSettings[key] || ''}
-                      onChange={(e) => setSiteSettings({ ...siteSettings, [key]: e.target.value })}
-                    />
+                {/* Visibility toggles */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Member Portal Visibility</p>
+                  <div className="bg-gray-50 rounded-xl divide-y divide-gray-100">
+                    {[
+                      { key: 'show_login',     label: 'Login button',    desc: 'Show Login button on /members pages' },
+                      { key: 'show_register',  label: 'Register button', desc: 'Show Register button on /members pages' },
+                      { key: 'show_join_club', label: '"Join the Club"', desc: 'Show Join buttons on Home & Events pages' },
+                    ].map(({ key, label, desc }) => (
+                      <div key={key} className="flex items-center justify-between px-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{label}</p>
+                          <p className="text-xs text-gray-400">{desc}</p>
+                        </div>
+                        <button
+                          onClick={() => setSiteSettings({ ...siteSettings, [key]: siteSettings[key] === 'false' ? 'true' : 'false' })}
+                          className={`relative w-11 h-6 rounded-full transition-colors ${siteSettings[key] !== 'false' ? 'bg-brand-600' : 'bg-gray-300'}`}
+                        >
+                          <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${siteSettings[key] !== 'false' ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                {/* Contact & club info */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Contact & Club Info</p>
+                  {[
+                    { key: 'contact_email', label: 'Contact Email', type: 'email' },
+                    { key: 'contact_phone', label: 'Contact Phone', type: 'tel' },
+                    { key: 'run_location', label: 'Run Location', type: 'text' },
+                    { key: 'run_day_time', label: 'Run Day & Time', type: 'text' },
+                    { key: 'maps_link', label: 'Google Maps Link', type: 'url' },
+                  ].map(({ key, label, type }) => (
+                    <div key={key} className="mb-3">
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">{label}</label>
+                      <input
+                        type={type}
+                        className="input-field"
+                        value={siteSettings[key] || ''}
+                        onChange={(e) => setSiteSettings({ ...siteSettings, [key]: e.target.value })}
+                      />
+                    </div>
+                  ))}
+                </div>
 
                 <button
                   onClick={handleSaveSettings}

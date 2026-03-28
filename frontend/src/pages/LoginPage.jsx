@@ -27,7 +27,7 @@ export default function LoginPage() {
       const res = await authApi.login({ identifier: data.identifier, password: data.password })
       setToken(res.data.access_token)
       await fetchMe()
-      navigate('/dashboard')
+      navigate('/members/dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid credentials. Check your email/mobile and password.')
     } finally {
@@ -57,7 +57,7 @@ export default function LoginPage() {
       const res = await authApi.verifyOtp(data.email, data.otp)
       setToken(res.data.access_token)
       await fetchMe()
-      navigate('/dashboard')
+      navigate('/members/dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid OTP')
     } finally {
@@ -128,7 +128,7 @@ export default function LoginPage() {
               <button type="submit" className="btn-primary w-full mt-1" disabled={loading}>
                 {loading ? <><Loader2 size={16} className="animate-spin" /> Signing in…</> : 'Sign In'}
               </button>
-              <Link to="/forgot-password" className="text-sm text-brand-600 hover:underline text-center block mt-2">
+              <Link to="/members/forgot-password" className="text-sm text-brand-600 hover:underline text-center block mt-2">
                 Forgot Password?
               </Link>
             </form>
@@ -178,7 +178,7 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-gray-500 mt-5">
             New to Tirupur Runners?{' '}
-            <Link to="/register" className="text-brand-600 font-medium hover:underline">Join now</Link>
+            <Link to="/members/register" className="text-brand-600 font-medium hover:underline">Join now</Link>
           </p>
         </div>
       </div>

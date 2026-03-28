@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, MapPin, Users, Calendar, Trophy } from 'lucide-react'
+import { useAuthStore } from '../store/authStore'
 
 const STATS = [
   { icon: Users, value: '250+', label: 'Active Members' },
@@ -32,6 +33,9 @@ const FEATURES = [
 ]
 
 export default function HomePage() {
+  const { settings } = useAuthStore()
+  const showJoin = settings?.show_join_club !== 'false'
+
   return (
     <div className="pt-16">
       {/* Hero — gradient background + poster image side by side */}
@@ -53,9 +57,11 @@ export default function HomePage() {
               to your marathon PR, we run every stride as a community.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link to="/register" className="btn-primary bg-white text-brand-700 hover:bg-brand-50 py-3.5 px-8 text-base">
-                Join the Club <ArrowRight size={18} />
-              </Link>
+              {showJoin && (
+                <Link to="/members/register" className="btn-primary bg-white text-brand-700 hover:bg-brand-50 py-3.5 px-8 text-base">
+                  Join the Club <ArrowRight size={18} />
+                </Link>
+              )}
               <Link to="/events" className="btn-outline border-white text-white hover:bg-white/10 py-3.5 px-8 text-base">
                 View Events
               </Link>
@@ -130,9 +136,11 @@ export default function HomePage() {
           <h2 className="font-display font-bold text-3xl mb-4">Ready to start running?</h2>
           <p className="text-brand-100 mb-2">New membership — ₹2,000 &nbsp;·&nbsp; Renewal — ₹1,500</p>
           <p className="text-brand-200 text-sm mb-8">Join 250+ runners. Be part of Tirupur's running community.</p>
-          <Link to="/register" className="btn-primary bg-white text-brand-700 hover:bg-brand-50 py-3.5 px-10 text-base">
-            Register Now <ArrowRight size={18} />
-          </Link>
+          {showJoin && (
+            <Link to="/members/register" className="btn-primary bg-white text-brand-700 hover:bg-brand-50 py-3.5 px-10 text-base">
+              Register Now <ArrowRight size={18} />
+            </Link>
+          )}
         </div>
       </section>
     </div>

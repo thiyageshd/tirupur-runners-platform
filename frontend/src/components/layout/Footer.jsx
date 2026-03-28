@@ -23,7 +23,7 @@ export default function Footer() {
               ['/', 'Home'],
               ['/about', 'About Us'],
               ['/events', 'Events'],
-              ['/register', 'Join the Club'],
+              ['/members/register', 'Join the Club'],
               ['/contact', 'Contact'],
             ].map(([to, label]) => (
               <li key={to}>

@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
     try {
       await authApi.resetPassword(identifier.trim(), otp, newPassword)
       setSuccess(true)
-      setTimeout(() => navigate('/login'), 2000)
+      setTimeout(() => navigate('/members/login'), 2000)
     } catch (err) {
       setResetError(err.response?.data?.detail || 'Invalid or expired OTP. Try again.')
     } finally {

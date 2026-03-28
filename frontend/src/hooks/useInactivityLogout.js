@@ -19,7 +19,7 @@ export default function useInactivityLogout() {
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => {
         logout()
-        navigate('/login')
+        navigate('/members/login')
       }, TIMEOUT_MS)
     }
 

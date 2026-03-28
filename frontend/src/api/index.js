@@ -21,7 +21,7 @@ apiClient.interceptors.response.use(
     const isAuthEndpoint = err.config?.url?.startsWith('/auth/')
     if (err.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('access_token')
-      window.location.href = '/login'
+      window.location.href = '/members/login'
     }
     return Promise.reject(err)
   }

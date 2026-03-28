@@ -93,7 +93,7 @@ export default function RegisterPage() {
               razorpay_signature: response.razorpay_signature,
             })
             setSuccess(true)
-            setTimeout(() => navigate('/dashboard'), 2500)
+            setTimeout(() => navigate('/members/dashboard'), 2500)
           } catch {
             setError('Payment verification failed. Contact support.')
           }

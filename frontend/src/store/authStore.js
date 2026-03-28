@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { authApi } from '../api'
+import { authApi, settingsApi } from '../api'
 
 const getStoredUser = () => {
   try {
@@ -14,6 +14,16 @@ export const useAuthStore = create((set, get) => ({
   token: localStorage.getItem('access_token') || null,
   loading: false,
   error: null,
+  settings: { show_login: 'true', show_register: 'true', show_join_club: 'true' },
+
+  fetchSettings: async () => {
+    try {
+      const { data } = await settingsApi.get()
+      set({ settings: data })
+    } catch {
+      // keep defaults
+    }
+  },
 
   setToken: (token) => {
     localStorage.setItem('access_token', token)
