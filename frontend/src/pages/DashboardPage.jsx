@@ -72,12 +72,9 @@ export default function DashboardPage() {
       document.body.appendChild(script)
     })
 
-  const handleRenew = async () => {
+  const handleRenew = async (targetYear) => {
     setRenewLoading(true)
     try {
-      const currentYear = new Date().getFullYear()
-      // If active membership exists for current year, renew for next year
-      const targetYear = membership?.status === 'active' ? currentYear + 1 : currentYear
       const orderRes = await paymentApi.createOrder(targetYear)
       const order = orderRes.data
       await loadRazorpay()
@@ -98,11 +95,12 @@ export default function DashboardPage() {
         },
         prefill: { name: user.full_name, email: user.email, contact: user.phone },
         theme: { color: '#16a34a' },
-        modal: { ondismiss: () => setRenewLoading(false) },
       }
       new window.Razorpay(options).open()
     } catch (err) {
       alert(err.response?.data?.detail || 'Could not start renewal')
+    } finally {
+      // Always reset — rzp.open() is synchronous, Razorpay modal takes over from here
       setRenewLoading(false)
     }
   }
@@ -115,8 +113,15 @@ export default function DashboardPage() {
     )
   }
 
+  const today = new Date()
+  const currentYear = today.getFullYear()
+  // Renewal window: March 1 onwards (month index 2 = March)
+  const isRenewalSeason = today.getMonth() >= 2
+
   const isActive = membership?.status === 'active'
   const canRenew = !membership || membership.status === 'expired' || membership.status === 'pending'
+  const showNextYearRenew = isActive && isRenewalSeason
+
   const renewLabel = !membership
     ? 'Get Membership — ₹2,000'
     : membership.status === 'pending'
@@ -144,10 +149,10 @@ export default function DashboardPage() {
 
           <MembershipBadge membership={membership} />
 
-          {/* Renew button — shown for expired/pending/no membership */}
+          {/* Renew button — expired / pending / no membership */}
           {canRenew && (
             <button
-              onClick={handleRenew}
+              onClick={() => handleRenew(currentYear)}
               className="btn-primary w-full mt-4"
               disabled={renewLoading}
             >
@@ -157,16 +162,16 @@ export default function DashboardPage() {
             </button>
           )}
 
-          {/* Active membership — option to renew for next year */}
-          {isActive && (
+          {/* Renew for Next Year — active members, visible from March 1 each year */}
+          {showNextYearRenew && (
             <button
-              onClick={handleRenew}
+              onClick={() => handleRenew(currentYear + 1)}
               disabled={renewLoading}
               className="w-full mt-3 py-2.5 text-sm text-brand-600 font-medium border border-brand-200 rounded-xl hover:bg-brand-50 transition-colors disabled:opacity-50"
             >
               {renewLoading
                 ? <span className="flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Processing…</span>
-                : `Renew for Next Year — ₹1,500`}
+                : `Renew for Next Year (${currentYear + 1}) — ₹1,500`}
             </button>
           )}
         </div>
