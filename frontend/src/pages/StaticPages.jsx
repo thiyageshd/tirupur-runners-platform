@@ -23,14 +23,16 @@ export function AboutPage() {
           Our mission: <span className="italic text-gray-700">"Inspire the city to lace up, show up, and run together."</span>
         </p>
 
-        {/* Marathon event image */}
-        <div className="rounded-2xl overflow-hidden mb-10">
-          <img
-            src="https://racemart.in/storage/poster/poster-1748432314814.png"
-            alt="Toplight Tirupur Runners Marathon"
-            className="w-full object-cover max-h-64"
-            onError={(e) => { e.target.style.display = 'none' }}
-          />
+        {/* Marathon event poster — natural portrait card, centered */}
+        <div className="flex justify-center mb-10">
+          <div className="w-60 rounded-2xl overflow-hidden shadow-lg ring-1 ring-gray-100">
+            <img
+              src="https://racemart.in/storage/poster/poster-1748432314814.png"
+              alt="Toplight Tirupur Runners Marathon"
+              className="w-full h-auto block"
+              onError={(e) => { e.target.parentElement.style.display = 'none' }}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
