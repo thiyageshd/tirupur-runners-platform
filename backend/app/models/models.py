@@ -73,3 +73,11 @@ class Payment(Base):
 
     user = relationship("User", back_populates="payments")
     membership = relationship("Membership", back_populates="payments")
+
+
+class SiteSettings(Base):
+    __tablename__ = "site_settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(String(2000), nullable=False, default="")
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

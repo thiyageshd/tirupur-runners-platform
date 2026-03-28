@@ -1,24 +1,28 @@
-import { Calendar, MapPin, Clock, ArrowRight } from 'lucide-react'
+import { Calendar, MapPin, Clock, ArrowRight, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
+
+const MAPS_URL = 'https://maps.google.com/?q=Tirupur+Collectorate,Tirupur,Tamil+Nadu'
 
 const EVENTS = [
   {
     title: 'Sunday Morning Run',
     date: 'Every Sunday',
     time: '5:30 AM',
-    location: 'VOC Park, Tirupur',
+    location: 'Tirupur Collectorate',
+    mapsUrl: MAPS_URL,
     category: 'Weekly',
     desc: 'Our flagship weekly run. All paces welcome — 5K, 10K, or custom routes.',
     color: 'brand',
   },
   {
-    title: 'Toplight Tirupur Runners Marathon 2026',
-    date: 'August 2, 2026',
+    title: 'Toplight Tirupur Runners Marathon',
+    date: 'Date TBA — Stay Tuned!',
     time: '5:00 AM',
     location: 'Tirupur City Circuit',
     category: 'Marathon',
-    desc: 'Annual flagship event with 5K, 10K & 21K categories. 3500+ runners expected. Register at toplighttirupurrunnersmarathon.com',
+    desc: 'Annual flagship event with 5K, 10K & 21K categories. 3500+ runners expected. Register at toplighttirupurrunnersmarathon.com — Something big is coming to Tirupur. Watch this space.',
     color: 'purple',
+    dateTba: true,
   },
   {
     title: 'Trail Running Weekend',
@@ -65,13 +69,34 @@ export default function EventsPage() {
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${BADGE_COLORS[event.color]}`}>
                     {event.category}
                   </span>
+                  {event.dateTba && (
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
+                      🎯 Coming Soon
+                    </span>
+                  )}
                 </div>
                 <h3 className="font-display font-bold text-xl text-gray-900 mb-2">{event.title}</h3>
                 <p className="text-gray-600 text-sm leading-relaxed mb-4">{event.desc}</p>
                 <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                  <span className="flex items-center gap-1.5"><Calendar size={14} /> {event.date}</span>
+                  <span className={`flex items-center gap-1.5 ${event.dateTba ? 'text-gray-400 italic' : ''}`}>
+                    <Calendar size={14} /> {event.date}
+                  </span>
                   <span className="flex items-center gap-1.5"><Clock size={14} /> {event.time}</span>
-                  <span className="flex items-center gap-1.5"><MapPin size={14} /> {event.location}</span>
+                  <span className="flex items-center gap-1.5">
+                    <MapPin size={14} />
+                    {event.mapsUrl ? (
+                      <a
+                        href={event.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-2 hover:text-brand-600 flex items-center gap-1"
+                      >
+                        {event.location} <ExternalLink size={11} />
+                      </a>
+                    ) : (
+                      event.location
+                    )}
+                  </span>
                 </div>
               </div>
             </div>

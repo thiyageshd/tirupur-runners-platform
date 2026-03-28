@@ -120,7 +120,7 @@ export default function DashboardPage() {
 
   const isActive = membership?.status === 'active'
   const canRenew = !membership || membership.status === 'expired' || membership.status === 'pending'
-  const showNextYearRenew = isActive && isRenewalSeason
+  const showNextYearRenew = isActive && isRenewalSeason && membership.year < currentYear + 1
 
   const renewLabel = !membership
     ? 'Get Membership — ₹2,000'

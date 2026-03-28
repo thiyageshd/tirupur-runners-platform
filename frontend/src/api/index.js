@@ -63,4 +63,16 @@ export const adminApi = {
       responseType: 'blob',
     }),
   getStats: () => apiClient.get('/admin/stats'),
+  toggleAdmin: (userId) => apiClient.put(`/admin/users/${userId}/toggle-admin`),
+  uploadOfflinePayments: (formData) =>
+    apiClient.post('/admin/offline-payments/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────
+
+export const settingsApi = {
+  get: () => apiClient.get('/settings'),
+  update: (data) => apiClient.put('/settings', data),
 }

@@ -90,6 +90,7 @@ class MembershipService:
                 "phone": user.phone,
                 "age": user.age,
                 "gender": user.gender,
+                "is_admin": user.is_admin,
                 "membership_status": membership.status,
                 "membership_year": membership.year,
                 "start_date": membership.start_date,

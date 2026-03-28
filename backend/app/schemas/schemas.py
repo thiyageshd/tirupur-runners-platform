@@ -111,6 +111,7 @@ class MemberListItem(BaseModel):
     phone: str
     age: int
     gender: str
+    is_admin: bool
     membership_status: str
     membership_year: int
     start_date: Optional[date]
@@ -125,3 +126,14 @@ class AdminStatsResponse(BaseModel):
     active_members: int
     expired_members: int
     total_revenue_paise: int
+
+
+class OfflinePaymentRow(BaseModel):
+    row: int
+    reason: str
+
+
+class OfflineUploadResult(BaseModel):
+    processed: int
+    skipped: int
+    errors: List[OfflinePaymentRow]

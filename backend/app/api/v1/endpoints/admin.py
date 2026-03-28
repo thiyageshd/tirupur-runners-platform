@@ -1,13 +1,15 @@
 import csv
 import io
+import uuid as uuid_module
+from datetime import date
 from typing import Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
 
 from app.db.session import get_db
-from app.schemas.schemas import MemberListItem, AdminStatsResponse
+from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult
 from app.services.membership_service import MembershipService
 from app.models.models import User, Membership, Payment
 from app.core.security import get_current_admin
@@ -21,7 +23,6 @@ async def list_members(
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    # Lazily sync expired memberships on admin access
     svc = MembershipService(db)
     await svc.sync_expired_statuses()
     members = await svc.get_all_with_user(status_filter=status)
@@ -93,3 +94,161 @@ async def get_stats(
         "expired_members": expired_count or 0,
         "total_revenue_paise": total_revenue or 0,
     }
+
+
+def _parse_csv_rows(content: bytes) -> list[dict]:
+    text = content.decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(text))
+    return [dict(row) for row in reader]
+
+
+def _parse_xlsx_rows(content: bytes) -> list[dict]:
+    import openpyxl
+    wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+    ws = wb.active
+    headers = None
+    rows = []
+    for i, row in enumerate(ws.iter_rows(values_only=True)):
+        if i == 0:
+            headers = [str(h).strip() if h is not None else "" for h in row]
+        else:
+            rows.append({h: (str(v) if v is not None else "") for h, v in zip(headers, row)})
+    return rows
+
+
+def _parse_xls_rows(content: bytes) -> list[dict]:
+    import xlrd
+    wb = xlrd.open_workbook(file_contents=content)
+    ws = wb.sheet_by_index(0)
+    headers = [str(ws.cell_value(0, c)).strip() for c in range(ws.ncols)]
+    rows = []
+    for r in range(1, ws.nrows):
+        rows.append({h: str(ws.cell_value(r, c)) for c, h in enumerate(headers)})
+    return rows
+
+
+@router.post("/offline-payments/upload", response_model=OfflineUploadResult)
+async def upload_offline_payments(
+    file: UploadFile = File(...),
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    content = await file.read()
+    filename = (file.filename or "").lower()
+
+    if filename.endswith(".csv"):
+        rows = _parse_csv_rows(content)
+    elif filename.endswith(".xlsx"):
+        rows = _parse_xlsx_rows(content)
+    elif filename.endswith(".xls"):
+        rows = _parse_xls_rows(content)
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file type. Use CSV, XLS, or XLSX.")
+
+    processed = 0
+    skipped = 0
+    errors = []
+
+    for row_num, row in enumerate(rows, start=2):  # row 1 = header
+        mobile = str(row.get("mobile", "") or "").strip().lstrip("+")
+        email = str(row.get("email", "") or "").strip().lower()
+        amount_str = str(row.get("amount", "") or "").strip()
+        year_str = str(row.get("year", "") or "").strip()
+
+        if not year_str or not amount_str:
+            errors.append({"row": row_num, "reason": "Missing year or amount"})
+            skipped += 1
+            continue
+
+        try:
+            year = int(float(year_str))
+            amount_paise = int(float(amount_str) * 100)
+        except ValueError:
+            errors.append({"row": row_num, "reason": f"Invalid year or amount: {year_str}, {amount_str}"})
+            skipped += 1
+            continue
+
+        # Find user by mobile, then email
+        user = None
+        if mobile:
+            result = await db.execute(
+                select(User).where(User.phone.like(f"%{mobile[-10:]}"))
+            )
+            user = result.scalar_one_or_none()
+        if not user and email:
+            result = await db.execute(select(User).where(User.email == email))
+            user = result.scalar_one_or_none()
+
+        if not user:
+            errors.append({"row": row_num, "reason": f"User not found (mobile={mobile}, email={email})"})
+            skipped += 1
+            continue
+
+        # Check for existing membership in that year
+        result = await db.execute(
+            select(Membership).where(
+                and_(Membership.user_id == user.id, Membership.year == year)
+            )
+        )
+        if result.scalar_one_or_none():
+            errors.append({"row": row_num, "reason": f"{user.full_name}: membership for {year} already exists"})
+            skipped += 1
+            continue
+
+        idem_key = f"offline:{user.id}:{year}"
+
+        # Check for duplicate offline payment
+        result = await db.execute(
+            select(Payment).where(Payment.idempotency_key == idem_key)
+        )
+        if result.scalar_one_or_none():
+            errors.append({"row": row_num, "reason": f"{user.full_name}: offline payment for {year} already recorded"})
+            skipped += 1
+            continue
+
+        # Create payment record
+        payment = Payment(
+            user_id=user.id,
+            razorpay_order_id=idem_key,
+            amount_paise=amount_paise,
+            currency="INR",
+            status="paid",
+            idempotency_key=idem_key,
+        )
+        db.add(payment)
+        await db.flush()
+
+        # Create active membership
+        membership = Membership(
+            user_id=user.id,
+            start_date=date(year, 4, 1),
+            end_date=date(year + 1, 3, 31),
+            status="active",
+            year=year,
+        )
+        db.add(membership)
+        await db.flush()
+
+        payment.membership_id = membership.id
+        processed += 1
+
+    return {"processed": processed, "skipped": skipped, "errors": errors}
+
+
+@router.put("/users/{user_id}/toggle-admin", response_model=UserResponse)
+async def toggle_admin(
+    user_id: uuid_module.UUID,
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_admin.id == user_id:
+        raise HTTPException(status_code=400, detail="Cannot remove your own admin status")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.is_admin = not user.is_admin
+    await db.flush()
+    return user
