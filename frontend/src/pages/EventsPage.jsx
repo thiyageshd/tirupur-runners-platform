@@ -12,12 +12,12 @@ const EVENTS = [
     color: 'brand',
   },
   {
-    title: 'Tirupur Runners Marathon 2026',
-    date: 'January 2026',
-    time: 'TBA',
+    title: 'Toplight Tirupur Runners Marathon 2025',
+    date: 'August 2, 2025',
+    time: '5:00 AM',
     location: 'Tirupur City Circuit',
     category: 'Marathon',
-    desc: 'Annual flagship event with 5K, 10K, 21K & 42K categories. 3500+ runners expected.',
+    desc: 'Annual flagship event with 5K, 10K & 21K categories. 3500+ runners expected. Register at toplighttirupurrunnersmarathon.com',
     color: 'purple',
   },
   {
@@ -82,7 +82,7 @@ export default function EventsPage() {
           <h2 className="font-display font-bold text-2xl text-gray-900 mb-2">
             Want to join these runs?
           </h2>
-          <p className="text-gray-500 mb-6">Become a member for ₹500/year and get access to all events.</p>
+          <p className="text-gray-500 mb-6">Become a member — ₹2,000 for new members · ₹1,500 renewal — and get access to all events.</p>
           <Link to="/register" className="btn-primary">
             Register Now <ArrowRight size={16} />
           </Link>

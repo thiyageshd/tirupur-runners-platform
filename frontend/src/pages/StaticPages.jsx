@@ -3,18 +3,42 @@ export function AboutPage() {
   return (
     <div className="min-h-screen pt-24 pb-16 px-4">
       <div className="max-w-3xl mx-auto">
-        <h1 className="font-display font-bold text-4xl text-gray-900 mb-4">About Us</h1>
+        {/* Logo from Tirupur Runners */}
+        <div className="flex items-center gap-4 mb-8">
+          <img
+            src="https://racemart.in/storage/partners/partner-1748525507271.jpg"
+            alt="Tirupur Runners Logo"
+            className="h-16 w-16 object-contain rounded-xl"
+            onError={(e) => { e.target.style.display = 'none' }}
+          />
+          <div>
+            <h1 className="font-display font-bold text-4xl text-gray-900">About Us</h1>
+            <p className="text-brand-600 font-medium text-sm">Tirupur Runners · Est. 2013</p>
+          </div>
+        </div>
+
         <p className="text-gray-500 text-lg leading-relaxed mb-8">
-          Tirupur Runners Club was founded in 2018 by a small group of passionate runners
+          Tirupur Runners was established in 2013 by a passionate community of local fitness enthusiasts
           who believed that running is more than a sport — it's a lifestyle that transforms communities.
+          Our mission: <span className="italic text-gray-700">"Inspire the city to lace up, show up, and run together."</span>
         </p>
+
+        {/* Marathon event image */}
+        <div className="rounded-2xl overflow-hidden mb-10">
+          <img
+            src="https://racemart.in/storage/poster/poster-1748432314814.png"
+            alt="Toplight Tirupur Runners Marathon"
+            className="w-full object-cover max-h-64"
+            onError={(e) => { e.target.style.display = 'none' }}
+          />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
           {[
-            { emoji: '🌅', title: 'Our Mission', desc: 'To promote health, fitness, and community spirit through running in Tirupur and Tamil Nadu.' },
-            { emoji: '🤝', title: 'Community First', desc: 'Every runner matters. From first-timers to ultramarathoners, we train and grow together.' },
-            { emoji: '🏙️', title: 'Rooted in Tirupur', desc: 'Proud to represent Tirupur — India\'s knitwear capital — on the national running map.' },
-            { emoji: '🏆', title: 'Toplight Marathon', desc: 'We organize one of South India\'s beloved marathons, drawing 3500+ runners annually.' },
+            { emoji: '🌅', title: 'Our Mission', desc: 'Inspire the city to lace up, show up, and run together — promoting health, fitness, and community spirit across Tirupur and Tamil Nadu.' },
+            { emoji: '🤝', title: 'Community First', desc: 'Over 250 active runners. Every runner matters — from first-timers to ultramarathoners. We train and grow together as one community.' },
+            { emoji: '🏙️', title: 'Rooted in Tirupur', desc: "Proud to represent Tirupur — India's knitwear capital — on the national running map since 2013." },
+            { emoji: '🏆', title: 'Toplight Marathon', desc: 'We organize the Toplight Tirupur Runners Marathon — a beloved Tamil Nadu event drawing 3500+ runners. Next edition: August 2, 2025.' },
           ].map((item) => (
             <div key={item.title} className="card flex gap-4">
               <span className="text-3xl">{item.emoji}</span>
@@ -28,9 +52,9 @@ export function AboutPage() {
 
         <div className="bg-brand-600 text-white rounded-2xl p-8">
           <h2 className="font-display font-bold text-2xl mb-3">Join our community</h2>
-          <p className="text-brand-100 mb-0">
-            500+ runners. 52 weekly runs a year. One unforgettable annual marathon.
-            Annual membership is just ₹500.
+          <p className="text-brand-100">
+            250+ runners. 52 weekly runs a year. One unforgettable annual marathon every August.
+            New member annual membership — ₹2,000. Renewal — ₹1,500.
           </p>
         </div>
       </div>
@@ -48,8 +72,8 @@ export function ContactPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
           {[
-            { label: 'Email', value: 'hello@tirupurrunners.com', emoji: '📧' },
-            { label: 'Phone', value: '+91 98765 43210', emoji: '📱' },
+            { label: 'Email', value: 'tirupurrunnersmarathon@gmail.com', emoji: '📧' },
+            { label: 'Phone', value: '+91 94882 52599', emoji: '📱' },
             { label: 'Location', value: 'VOC Park, Tirupur, TN 641604', emoji: '📍' },
             { label: 'Run Days', value: 'Every Sunday, 5:30 AM', emoji: '🕔' },
           ].map((item) => (

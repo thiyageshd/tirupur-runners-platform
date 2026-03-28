@@ -122,7 +122,7 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="font-display font-bold text-3xl text-gray-900 mb-2">Join Tirupur Runners</h1>
-          <p className="text-gray-500 text-sm">Annual membership — ₹500 only</p>
+          <p className="text-gray-500 text-sm">New member annual membership — ₹2,000</p>
         </div>
 
         {/* Step indicator */}
@@ -302,8 +302,8 @@ export default function RegisterPage() {
                 {/* Summary */}
                 <div className="bg-brand-50 border border-brand-100 rounded-xl p-4">
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-medium text-gray-700">Annual Membership {new Date().getFullYear()}</span>
-                    <span className="font-bold text-brand-700">₹500</span>
+                    <span className="text-sm font-medium text-gray-700">Annual Membership {new Date().getFullYear()} — New Member</span>
+                    <span className="font-bold text-brand-700">₹2,000</span>
                   </div>
                   <ul className="text-xs text-gray-500 space-y-1">
                     <li>✓ Access to all club runs</li>
@@ -341,7 +341,7 @@ export default function RegisterPage() {
                     {loading ? (
                       <><Loader2 size={16} className="animate-spin" /> Processing…</>
                     ) : (
-                      'Pay ₹500 & Join'
+                      'Pay ₹2,000 & Join'
                     )}
                   </button>
                 </div>

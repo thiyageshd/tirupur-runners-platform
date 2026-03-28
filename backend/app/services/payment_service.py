@@ -32,10 +32,21 @@ class PaymentService:
         )
         return result.scalar_one_or_none()
 
+    async def _has_prior_paid_membership(self, user_id) -> bool:
+        """Returns True if the user has ever had a paid membership."""
+        result = await self.db.execute(
+            select(Payment).where(
+                Payment.user_id == user_id,
+                Payment.status == "paid",
+            )
+        )
+        return result.scalar_one_or_none() is not None
+
     async def create_order(self, user_id, year: int) -> dict:
         """
         Idempotent: if an unpaid order exists for this user+year, return it.
         If already paid, raise 409.
+        New members pay ₹2000; existing members renew at ₹1500.
         """
         ikey = self._idempotency_key(user_id, year)
         existing = await self.get_existing_order(ikey)
@@ -52,7 +63,16 @@ class PaymentService:
                 "amount": existing.amount_paise,
                 "currency": existing.currency,
                 "key_id": settings.RAZORPAY_KEY_ID,
+                "is_renewal": existing.amount_paise == settings.MEMBERSHIP_RENEWAL_AMOUNT_PAISE,
             }
+
+        # Determine pricing: existing members renew at ₹1500, new at ₹2000
+        is_renewal = await self._has_prior_paid_membership(user_id)
+        amount_paise = (
+            settings.MEMBERSHIP_RENEWAL_AMOUNT_PAISE
+            if is_renewal
+            else settings.MEMBERSHIP_NEW_AMOUNT_PAISE
+        )
 
         # Create pending membership first
         membership_svc = MembershipService(self.db)
@@ -60,7 +80,7 @@ class PaymentService:
 
         # Create Razorpay order
         rz_order = self.rz.order.create({
-            "amount": settings.MEMBERSHIP_AMOUNT_PAISE,
+            "amount": amount_paise,
             "currency": "INR",
             "receipt": f"rcpt_{user_id}_{year}",
             "notes": {"user_id": str(user_id), "year": str(year)},
@@ -71,20 +91,21 @@ class PaymentService:
             user_id=user_id,
             membership_id=membership.id,
             razorpay_order_id=rz_order["id"],
-            amount_paise=settings.MEMBERSHIP_AMOUNT_PAISE,
+            amount_paise=amount_paise,
             currency="INR",
             status="created",
             idempotency_key=ikey,
-            metadata_={"year": year, "receipt": rz_order.get("receipt")},
+            metadata_={"year": year, "receipt": rz_order.get("receipt"), "is_renewal": is_renewal},
         )
         self.db.add(payment)
         await self.db.flush()
 
         return {
             "order_id": rz_order["id"],
-            "amount": settings.MEMBERSHIP_AMOUNT_PAISE,
+            "amount": amount_paise,
             "currency": "INR",
             "key_id": settings.RAZORPAY_KEY_ID,
+            "is_renewal": is_renewal,
         }
 
     async def verify_and_activate(

@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, MapPin, Users, Calendar, Trophy } from 'lucide-react'
 
 const STATS = [
-  { icon: Users, value: '500+', label: 'Active Members' },
+  { icon: Users, value: '250+', label: 'Active Members' },
   { icon: Calendar, value: '52+', label: 'Weekly Runs' },
-  { icon: MapPin, value: '7+', label: 'Years Running' },
+  { icon: MapPin, value: '12+', label: 'Years Running' },
   { icon: Trophy, value: '3500+', label: 'Marathon Finishers' },
 ]
 
@@ -16,7 +16,7 @@ const FEATURES = [
   },
   {
     title: 'Annual Marathon',
-    desc: 'Tirupur Runners Marathon — one of Tamil Nadu's most celebrated running events.',
+    desc: 'Toplight Tirupur Runners Marathon — next edition on August 2, 2025.',
     emoji: '🏅',
   },
   {
@@ -35,25 +35,30 @@ export default function HomePage() {
   return (
     <div className="pt-16">
       {/* Hero */}
-      <section className="relative bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600 text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-10"
+      <section className="relative text-white overflow-hidden" style={{ minHeight: '560px' }}>
+        {/* Background image from marathon event poster */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundImage: `url("https://racemart.in/storage/poster/poster-1748432314814.png")`,
           }}
         />
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-900/85 via-brand-800/80 to-brand-600/70" />
+
         <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-32">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-4 py-1.5 rounded-full text-sm mb-6">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              Tirupur, Tamil Nadu 🏃
+              Next Marathon: August 2, 2025 · Tirupur, Tamil Nadu 🏃
             </div>
             <h1 className="font-display font-extrabold text-4xl md:text-6xl leading-tight mb-6">
-              Run Together.<br />
-              <span className="text-brand-200">Grow Together.</span>
+              Lace Up.<br />
+              <span className="text-brand-200">Show Up. Run Together.</span>
             </h1>
             <p className="text-lg text-brand-100 mb-8 leading-relaxed">
-              Join Tirupur's most vibrant running club. From your first 5K to your marathon PR —
-              we run every stride as a community.
+              Join Tirupur's most vibrant running club — established 2013. From your first 5K to your
+              marathon PR, we run every stride as a community.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link to="/register" className="btn-primary bg-white text-brand-700 hover:bg-brand-50 py-3.5 px-8 text-base">
@@ -77,6 +82,30 @@ export default function HomePage() {
               <p className="text-xs text-gray-500 mt-0.5">{label}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Marathon Highlight Banner */}
+      <section className="max-w-6xl mx-auto px-4 pt-12">
+        <div className="relative rounded-2xl overflow-hidden">
+          <img
+            src="https://racemart.in/storage/poster/poster-1748432314814.png"
+            alt="Toplight Tirupur Runners Marathon 2025"
+            className="w-full object-cover max-h-72 rounded-2xl"
+            onError={(e) => { e.target.style.display = 'none' }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-900/80 to-transparent rounded-2xl flex items-center px-8">
+            <div className="text-white max-w-sm">
+              <p className="text-xs font-semibold uppercase tracking-widest text-brand-200 mb-1">Mark Your Calendar</p>
+              <h2 className="font-display font-bold text-2xl md:text-3xl mb-2">
+                Toplight Tirupur Runners Marathon
+              </h2>
+              <p className="text-sm text-brand-100 mb-4">August 2, 2025 · 5K · 10K · 21K</p>
+              <Link to="/events" className="inline-flex items-center gap-2 bg-white text-brand-700 font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-brand-50 transition-colors">
+                Event Details <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -107,7 +136,8 @@ export default function HomePage() {
       <section className="bg-brand-600 text-white py-16">
         <div className="max-w-2xl mx-auto text-center px-4">
           <h2 className="font-display font-bold text-3xl mb-4">Ready to start running?</h2>
-          <p className="text-brand-100 mb-8">Annual membership at just ₹500. Join 500+ runners today.</p>
+          <p className="text-brand-100 mb-2">New membership — ₹2,000 &nbsp;·&nbsp; Renewal — ₹1,500</p>
+          <p className="text-brand-200 text-sm mb-8">Join 250+ runners. Be part of Tirupur's running community.</p>
           <Link to="/register" className="btn-primary bg-white text-brand-700 hover:bg-brand-50 py-3.5 px-10 text-base">
             Register Now <ArrowRight size={18} />
           </Link>

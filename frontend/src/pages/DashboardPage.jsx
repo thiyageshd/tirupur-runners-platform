@@ -109,7 +109,7 @@ export default function DashboardPage() {
               {renewLoading ? (
                 <><Loader2 size={16} className="animate-spin" /> Processing…</>
               ) : (
-                membership ? 'Renew Membership — ₹500' : 'Get Membership — ₹500'
+                membership ? 'Renew Membership — ₹1,500' : 'Get Membership — ₹2,000'
               )}
             </button>
           )}

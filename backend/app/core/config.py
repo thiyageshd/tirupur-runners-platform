@@ -19,7 +19,10 @@ class Settings(BaseSettings):
     # Razorpay
     RAZORPAY_KEY_ID: str
     RAZORPAY_KEY_SECRET: str
-    MEMBERSHIP_AMOUNT_PAISE: int = 50000  # ₹500 in paise
+    RAZORPAY_WEBHOOK_SECRET: str
+    MEMBERSHIP_AMOUNT_PAISE: int = 200000       # ₹2000 in paise (new members)
+    MEMBERSHIP_NEW_AMOUNT_PAISE: int = 200000   # ₹2000 — first-time members
+    MEMBERSHIP_RENEWAL_AMOUNT_PAISE: int = 150000  # ₹1500 — renewal for existing members
 
     # Admin
     ADMIN_EMAIL: str = "admin@tirupurrunners.com"
