@@ -10,8 +10,9 @@ Usage (run from backend/ directory):
 What it does:
   - Reads all rows from the Excel registration sheet
   - Creates a User for each member (skips rows with duplicate email)
-  - Password set to: <mobile_number>_runners  (e.g. 9876543210_runners)
+  - Password set to: <10-digit mobile number>
   - Creates an active Membership for year 2025 (Apr 2025 – Mar 2026)
+  - Creates a MemberProfile with blood group, photo, profession, etc.
   - Fully idempotent — safe to re-run; existing emails are skipped
 """
 
@@ -40,7 +41,7 @@ import pyotp
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
-from app.models.models import User, Membership
+from app.models.models import User, Membership, MemberProfile
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -54,8 +55,19 @@ COL_PHONE = 3
 COL_MEMBERSHIP_STATUS = 4
 COL_DOB = 5
 COL_EMAIL = 6
+COL_TSHIRT = 7
+COL_BLOOD_GROUP = 8
 COL_EMERGENCY_NAME = 9
 COL_EMERGENCY_PHONE = 10
+COL_PHOTO_URL = 11
+COL_PROFESSION = 12
+COL_WORK_DETAILS = 13
+COL_INTERESTS = 14
+COL_BIO = 15
+COL_STRAVA = 16
+
+# Valid T-shirt sizes from Excel data
+VALID_TSHIRT_SIZES = {'M', 'L', 'XL', 'XXL'}
 
 # Membership period for 2025-26
 MEMBERSHIP_YEAR = 2025
@@ -89,6 +101,21 @@ def clean_str(raw) -> str:
     return str(raw).strip() if raw else ""
 
 
+def safe_col(row, idx) -> str:
+    """Safely get column value, returns empty string if index out of range."""
+    try:
+        return clean_str(row[idx])
+    except (IndexError, TypeError):
+        return ""
+
+def convert_drive_url(url: str) -> str:
+    """Convert Google Drive open?id= links to direct image URLs."""
+    if url and "drive.google.com/open?id=" in url:
+        file_id = url.split("open?id=")[-1].strip()
+        return f"https://drive.google.com/uc?export=view&id={file_id}"
+    return url
+
+
 def read_excel(excel_path: str) -> list[dict]:
     """Parse Excel and return list of member dicts."""
     wb = xlrd.open_workbook(excel_path)
@@ -106,6 +133,17 @@ def read_excel(excel_path: str) -> list[dict]:
         dob = row[COL_DOB]
         membership_status = clean_str(row[COL_MEMBERSHIP_STATUS])
 
+        # Profile fields
+        raw_tshirt = safe_col(row, COL_TSHIRT).upper()
+        t_shirt_size = raw_tshirt if raw_tshirt in VALID_TSHIRT_SIZES else None
+        blood_group = safe_col(row, COL_BLOOD_GROUP) or None
+        photo_url = convert_drive_url(safe_col(row, COL_PHOTO_URL)) or None
+        profession = safe_col(row, COL_PROFESSION) or None
+        work_details = safe_col(row, COL_WORK_DETAILS) or None
+        interests = safe_col(row, COL_INTERESTS) or None
+        bio = safe_col(row, COL_BIO) or None
+        strava_link = safe_col(row, COL_STRAVA) or None
+
         # Skip rows missing critical fields
         if not name or not email or not phone:
             print(f"  [SKIP] Row {i+1}: missing name/email/phone — {name!r} {email!r} {phone!r}")
@@ -121,6 +159,14 @@ def read_excel(excel_path: str) -> list[dict]:
             "emergency_contact": emergency_name or None,
             "emergency_phone": emergency_phone or None,
             "membership_status": membership_status,
+            "t_shirt_size": t_shirt_size,
+            "blood_group": blood_group,
+            "photo_url": photo_url,
+            "profession": profession,
+            "work_details": work_details,
+            "interests": interests,
+            "bio": bio,
+            "strava_link": strava_link,
         })
 
     return members
@@ -160,8 +206,8 @@ async def import_members(excel_path: str, dry_run: bool = False):
                     skipped += 1
                     continue
 
-                # Build password: <mobile>_runners
-                raw_password = f"{m['phone']}_runners"
+                # Password: 10-digit phone number
+                raw_password = m["phone"]
                 hashed = hash_password(raw_password)
 
                 user = User(
@@ -172,6 +218,7 @@ async def import_members(excel_path: str, dry_run: bool = False):
                     gender="not_specified",   # not collected in Excel
                     emergency_contact=m["emergency_contact"],
                     emergency_phone=m["emergency_phone"],
+                    t_shirt_size=m["t_shirt_size"],
                     hashed_password=hashed,
                     otp_secret=pyotp.random_base32(),
                     is_admin=False,
@@ -190,7 +237,21 @@ async def import_members(excel_path: str, dry_run: bool = False):
                     db.add(membership)
                     await db.flush()
 
-                print(f"  [OK]    {m['email']} — {m['full_name']} (pwd: {raw_password})")
+                    # Create MemberProfile with Excel data
+                    profile = MemberProfile(
+                        user_id=user.id,
+                        blood_group=m["blood_group"],
+                        photo_url=m["photo_url"],
+                        profession=m["profession"],
+                        work_details=m["work_details"],
+                        interests=m["interests"],
+                        bio=m["bio"],
+                        strava_link=m["strava_link"],
+                    )
+                    db.add(profile)
+                    await db.flush()
+
+                print(f"  [OK]    {m['email']} — {m['full_name']} (pwd: {raw_password}, tshirt: {m['t_shirt_size'] or '—'})")
                 created += 1
 
             except Exception as e:

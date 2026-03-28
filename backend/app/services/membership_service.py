@@ -81,8 +81,13 @@ class MembershipService:
         result = await self.db.execute(query)
         rows = result.all()
 
+        # Deduplicate: one row per user, keeping the latest membership
+        seen = set()
         members = []
         for user, membership in rows:
+            if user.id in seen:
+                continue
+            seen.add(user.id)
             members.append({
                 "user_id": user.id,
                 "full_name": user.full_name,
@@ -91,6 +96,7 @@ class MembershipService:
                 "age": user.age,
                 "gender": user.gender,
                 "is_admin": user.is_admin,
+                "t_shirt_size": user.t_shirt_size,
                 "membership_status": membership.status,
                 "membership_year": membership.year,
                 "start_date": membership.start_date,

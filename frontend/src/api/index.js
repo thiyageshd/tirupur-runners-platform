@@ -36,6 +36,11 @@ export const authApi = {
   verifyOtp: (email, otp) => apiClient.post('/auth/otp/verify', { email, otp }),
   me: () => apiClient.get('/auth/me'),
   updateProfile: (data) => apiClient.put('/auth/me', data),
+  getMyProfile: () => apiClient.get('/auth/me/profile'),
+  updateMyProfile: (data) => apiClient.put('/auth/me/profile', data),
+  uploadPhoto: (photo_data) => apiClient.put('/auth/me/photo', { photo_data }),
+  forgotPassword: (identifier) => apiClient.post('/auth/forgot-password', { identifier }),
+  resetPassword: (identifier, otp, new_password) => apiClient.post('/auth/reset-password', { identifier, otp, new_password }),
 }
 
 // ─── Memberships ───────────────────────────────────────────────────────────
@@ -64,6 +69,7 @@ export const adminApi = {
     }),
   getStats: () => apiClient.get('/admin/stats'),
   toggleAdmin: (userId) => apiClient.put(`/admin/users/${userId}/toggle-admin`),
+  updateTshirt: (userId, t_shirt_size) => apiClient.put(`/admin/users/${userId}/tshirt`, { t_shirt_size }),
   uploadOfflinePayments: (formData) =>
     apiClient.post('/admin/offline-payments/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

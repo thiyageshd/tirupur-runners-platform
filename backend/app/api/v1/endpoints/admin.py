@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 
 from app.db.session import get_db
-from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult
+from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult, TshirtUpdateRequest
 from app.services.membership_service import MembershipService
 from app.models.models import User, Membership, Payment
 from app.core.security import get_current_admin
@@ -78,7 +78,7 @@ async def get_stats(
     total_members = await db.scalar(select(func.count()).select_from(User))
 
     active_count = await db.scalar(
-        select(func.count()).select_from(Membership).where(Membership.status == "active")
+        select(func.count(func.distinct(Membership.user_id))).where(Membership.status == "active")
     )
     expired_count = await db.scalar(
         select(func.count()).select_from(Membership).where(Membership.status == "expired")
@@ -233,6 +233,22 @@ async def upload_offline_payments(
         processed += 1
 
     return {"processed": processed, "skipped": skipped, "errors": errors}
+
+
+@router.put("/users/{user_id}/tshirt", response_model=UserResponse)
+async def update_tshirt(
+    user_id: uuid_module.UUID,
+    data: TshirtUpdateRequest,
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.t_shirt_size = data.t_shirt_size
+    await db.flush()
+    return user
 
 
 @router.put("/users/{user_id}/toggle-admin", response_model=UserResponse)

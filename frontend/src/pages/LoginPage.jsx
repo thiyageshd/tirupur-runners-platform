@@ -128,6 +128,9 @@ export default function LoginPage() {
               <button type="submit" className="btn-primary w-full mt-1" disabled={loading}>
                 {loading ? <><Loader2 size={16} className="animate-spin" /> Signing in…</> : 'Sign In'}
               </button>
+              <Link to="/forgot-password" className="text-sm text-brand-600 hover:underline text-center block mt-2">
+                Forgot Password?
+              </Link>
             </form>
           )}
 

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Boolean, Integer, Date,
-    DateTime, ForeignKey, JSON, text
+    DateTime, ForeignKey, JSON, Text, text
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -26,6 +26,7 @@ class User(Base):
     address = Column(String(500), nullable=True)
     emergency_contact = Column(String(200), nullable=True)
     emergency_phone = Column(String(20), nullable=True)
+    t_shirt_size = Column(String(10), nullable=True)
     hashed_password = Column(String(255), nullable=True)
     otp_secret = Column(String(64), nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)
@@ -34,6 +35,7 @@ class User(Base):
 
     memberships = relationship("Membership", back_populates="user", lazy="select")
     payments = relationship("Payment", back_populates="user", lazy="select")
+    profile = relationship("MemberProfile", back_populates="user", uselist=False, lazy="selectin")
 
 
 class Membership(Base):
@@ -73,6 +75,22 @@ class Payment(Base):
 
     user = relationship("User", back_populates="payments")
     membership = relationship("Membership", back_populates="payments")
+
+
+class MemberProfile(Base):
+    __tablename__ = "member_profiles"
+
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    blood_group = Column(String(10), nullable=True)
+    photo_url = Column(Text, nullable=True)
+    profession = Column(String(100), nullable=True)
+    work_details = Column(String(500), nullable=True)
+    interests = Column(String(500), nullable=True)
+    bio = Column(String(1000), nullable=True)
+    strava_link = Column(String(200), nullable=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    user = relationship("User", back_populates="profile")
 
 
 class SiteSettings(Base):

@@ -16,6 +16,7 @@ class RegisterRequest(BaseModel):
     emergency_contact: Optional[str] = Field(None, max_length=200)
     emergency_phone: Optional[str] = None
     password: Optional[str] = Field(None, min_length=8)
+    t_shirt_size: str = Field(..., pattern=r"^(XS|S|M|L|XL|XXL|XXXL)$")
 
 
 class LoginRequest(BaseModel):
@@ -47,6 +48,44 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class ForgotPasswordRequest(BaseModel):
+    identifier: str
+
+
+class ResetPasswordRequest(BaseModel):
+    identifier: str
+    otp: str
+    new_password: str = Field(..., min_length=8)
+
+
+# ─── Member Profile ───────────────────────────────────────────────────────────
+
+class MemberProfileResponse(BaseModel):
+    blood_group: Optional[str] = None
+    photo_url: Optional[str] = None
+    profession: Optional[str] = None
+    work_details: Optional[str] = None
+    interests: Optional[str] = None
+    bio: Optional[str] = None
+    strava_link: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class MemberProfileUpdate(BaseModel):
+    blood_group: Optional[str] = Field(None, max_length=10)
+    photo_url: Optional[str] = None  # accepts URL or base64 data URI
+    profession: Optional[str] = Field(None, max_length=100)
+    work_details: Optional[str] = Field(None, max_length=500)
+    interests: Optional[str] = Field(None, max_length=500)
+    bio: Optional[str] = Field(None, max_length=1000)
+    strava_link: Optional[str] = Field(None, max_length=200)
+
+
+class PhotoUploadRequest(BaseModel):
+    photo_data: str = Field(..., description="Base64 data URI, e.g. data:image/jpeg;base64,...")
+
+
 # ─── User ─────────────────────────────────────────────────────────────────────
 
 class UserResponse(BaseModel):
@@ -59,6 +98,8 @@ class UserResponse(BaseModel):
     address: Optional[str]
     emergency_contact: Optional[str]
     is_admin: bool
+    t_shirt_size: Optional[str] = None
+    profile: Optional[MemberProfileResponse] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -112,6 +153,7 @@ class MemberListItem(BaseModel):
     age: int
     gender: str
     is_admin: bool
+    t_shirt_size: Optional[str] = None
     membership_status: str
     membership_year: int
     start_date: Optional[date]
@@ -137,3 +179,7 @@ class OfflineUploadResult(BaseModel):
     processed: int
     skipped: int
     errors: List[OfflinePaymentRow]
+
+
+class TshirtUpdateRequest(BaseModel):
+    t_shirt_size: str = Field(..., pattern=r"^(XS|S|M|L|XL|XXL|XXXL)$")

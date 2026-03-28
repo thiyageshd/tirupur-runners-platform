@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Download, Users, TrendingUp, XCircle, Clock, Loader2,
   Crown, Shield, ShieldOff, Upload, MessageSquare, Settings, CheckCircle2,
+  Pencil, Check, X,
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { adminApi, settingsApi } from '../api'
@@ -35,6 +36,11 @@ export default function AdminPage() {
   const [exporting, setExporting] = useState(false)
   const [search, setSearch] = useState('')
   const [togglingAdmin, setTogglingAdmin] = useState(null)
+
+  // T-shirt inline editing
+  const [editingTshirt, setEditingTshirt] = useState(null)
+  const [tshirtEditValue, setTshirtEditValue] = useState('')
+  const [savingTshirt, setSavingTshirt] = useState(null)
 
   // Offline payments tab
   const [uploadFile, setUploadFile] = useState(null)
@@ -112,6 +118,22 @@ export default function AdminPage() {
       alert(err.response?.data?.detail || 'Failed to toggle admin')
     } finally {
       setTogglingAdmin(null)
+    }
+  }
+
+  const handleSaveTshirt = async (userId) => {
+    if (!tshirtEditValue) return
+    setSavingTshirt(userId)
+    try {
+      await adminApi.updateTshirt(userId, tshirtEditValue)
+      setMembers((prev) =>
+        prev.map((m) => m.user_id === userId ? { ...m, t_shirt_size: tshirtEditValue } : m)
+      )
+      setEditingTshirt(null)
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update T-shirt size')
+    } finally {
+      setSavingTshirt(null)
     }
   }
 
@@ -275,7 +297,7 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
-                      {['Name', 'Email', 'Phone', 'Age', 'Gender', 'Status', 'Year', 'Valid Until', 'Joined', 'Admin'].map((h) => (
+                      {['Name', 'Email', 'Phone', 'Age', 'Gender', 'T-Shirt', 'Status', 'Year', 'Valid Until', 'Joined', 'Admin'].map((h) => (
                         <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                           {h}
                         </th>
@@ -285,7 +307,7 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-gray-50">
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="text-center py-12 text-gray-400">No members found</td>
+                        <td colSpan={11} className="text-center py-12 text-gray-400">No members found</td>
                       </tr>
                     ) : (
                       filtered.map((m) => (
@@ -300,6 +322,48 @@ export default function AdminPage() {
                           <td className="px-4 py-3 text-gray-600">{m.phone}</td>
                           <td className="px-4 py-3 text-gray-600">{m.age}</td>
                           <td className="px-4 py-3 text-gray-600 capitalize">{m.gender}</td>
+                          <td className="px-4 py-3">
+                            {editingTshirt === m.user_id ? (
+                              <span className="flex items-center gap-1">
+                                <select
+                                  value={tshirtEditValue}
+                                  onChange={(e) => setTshirtEditValue(e.target.value)}
+                                  className="text-xs border border-gray-300 rounded px-1.5 py-1"
+                                >
+                                  <option value="">—</option>
+                                  {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((s) => (
+                                    <option key={s} value={s}>{s}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  onClick={() => handleSaveTshirt(m.user_id)}
+                                  disabled={!tshirtEditValue || savingTshirt === m.user_id}
+                                  className="text-green-600 hover:bg-green-50 p-1 rounded disabled:opacity-40"
+                                >
+                                  {savingTshirt === m.user_id
+                                    ? <Loader2 size={12} className="animate-spin" />
+                                    : <Check size={12} />}
+                                </button>
+                                <button
+                                  onClick={() => setEditingTshirt(null)}
+                                  className="text-gray-400 hover:bg-gray-100 p-1 rounded"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1.5">
+                                <span className="text-gray-600">{m.t_shirt_size || '—'}</span>
+                                <button
+                                  onClick={() => { setEditingTshirt(m.user_id); setTshirtEditValue(m.t_shirt_size || '') }}
+                                  className="text-gray-300 hover:text-brand-600 p-0.5 rounded"
+                                  title="Edit T-shirt size"
+                                >
+                                  <Pencil size={11} />
+                                </button>
+                              </span>
+                            )}
+                          </td>
                           <td className="px-4 py-3">
                             <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[m.membership_status]}`}>
                               {m.membership_status}

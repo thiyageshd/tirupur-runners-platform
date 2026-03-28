@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 
 from app.core.config import settings
 from app.api.v1.router import api_router
@@ -9,9 +10,16 @@ from app.db.session import engine, Base
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables on startup (use Alembic for prod migrations)
     async with engine.begin() as conn:
+        # Create new tables (member_profiles, etc.)
         await conn.run_sync(Base.metadata.create_all)
+        # Add columns to existing tables that predate the ORM changes
+        await conn.execute(
+            text("ALTER TABLE users ADD COLUMN IF NOT EXISTS t_shirt_size VARCHAR(10)")
+        )
+        await conn.execute(
+            text("ALTER TABLE member_profiles ALTER COLUMN photo_url TYPE TEXT")
+        )
     yield
     await engine.dispose()
 

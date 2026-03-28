@@ -27,7 +27,7 @@ export default function RegisterPage() {
 
   const STEP_FIELDS = [
     ['full_name', 'email', 'password'],
-    ['phone', 'age', 'gender', 'address', 'emergency_contact', 'emergency_phone'],
+    ['phone', 'age', 'gender', 'address', 'emergency_contact', 'emergency_phone', 't_shirt_size'],
   ]
 
   const nextStep = async () => {
@@ -49,20 +49,32 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
     try {
-      // 1. Register user
+      // 1. Register user (t_shirt_size included; blood_group + strava_link ignored by register endpoint)
       await authApi.register(data)
 
       // 2. Login to get token
-      const loginRes = await authApi.login({ email: data.email, password: data.password })
+      const loginRes = await authApi.login({ identifier: data.email, password: data.password })
       const token = loginRes.data.access_token
       setToken(token)
       await fetchMe()
 
-      // 3. Create Razorpay order
+      // 3. Save optional profile extras
+      if (data.blood_group || data.strava_link) {
+        try {
+          await authApi.updateMyProfile({
+            blood_group: data.blood_group || undefined,
+            strava_link: data.strava_link || undefined,
+          })
+        } catch {
+          // Non-critical — continue to payment
+        }
+      }
+
+      // 4. Create Razorpay order
       const orderRes = await paymentApi.createOrder(new Date().getFullYear())
       const order = orderRes.data
 
-      // 4. Load Razorpay checkout
+      // 5. Load Razorpay checkout
       const loaded = await loadRazorpay()
       if (!loaded) throw new Error('Failed to load Razorpay')
 
@@ -241,17 +253,50 @@ export default function RegisterPage() {
                   </FormField>
                 </div>
 
-                <FormField label="Gender" required error={errors.gender?.message}>
-                  <select
-                    className="input-field"
-                    {...register('gender', { required: 'Gender is required' })}
-                  >
-                    <option value="">Select gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </FormField>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Gender" required error={errors.gender?.message}>
+                    <select
+                      className="input-field"
+                      {...register('gender', { required: 'Gender is required' })}
+                    >
+                      <option value="">Select gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </FormField>
+
+                  <FormField label="T-Shirt Size" required error={errors.t_shirt_size?.message}>
+                    <select
+                      className="input-field"
+                      {...register('t_shirt_size', { required: 'T-shirt size is required' })}
+                    >
+                      <option value="">Select size</option>
+                      {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Blood Group" error={errors.blood_group?.message}>
+                    <select className="input-field" {...register('blood_group')}>
+                      <option value="">Select (optional)</option>
+                      {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                        <option key={bg} value={bg}>{bg}</option>
+                      ))}
+                    </select>
+                  </FormField>
+
+                  <FormField label="Strava Profile" error={errors.strava_link?.message}>
+                    <input
+                      className="input-field"
+                      placeholder="strava.com/athletes/... (optional)"
+                      {...register('strava_link')}
+                    />
+                  </FormField>
+                </div>
 
                 <FormField label="Address" error={errors.address?.message}>
                   <textarea

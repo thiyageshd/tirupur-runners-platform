@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, RefreshCw, Pencil, X, Check } from 'lucide-react'
+import { useRef } from 'react'
+import { Loader2, RefreshCw, Pencil, X, Check, Camera } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { useAuthStore } from '../store/authStore'
 import { membershipApi, paymentApi, authApi } from '../api'
@@ -11,6 +12,7 @@ export default function DashboardPage() {
   const { user, logout, fetchMe } = useAuthStore()
   const [membership, setMembership] = useState(null)
   const [nextYearMembership, setNextYearMembership] = useState(null)
+  const [memberProfile, setMemberProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [renewLoading, setRenewLoading] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -19,6 +21,9 @@ export default function DashboardPage() {
   const navigate = useNavigate()
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
+  const fileInputRef = useRef(null)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -28,12 +33,14 @@ export default function DashboardPage() {
   const fetchMembership = async () => {
     const year = new Date().getFullYear()
     try {
-      const [currentRes, nextRes] = await Promise.allSettled([
+      const [currentRes, nextRes, profileRes] = await Promise.allSettled([
         membershipApi.getMy(),
         membershipApi.getMy(year + 1),
+        authApi.getMyProfile(),
       ])
       setMembership(currentRes.status === 'fulfilled' ? currentRes.value.data : null)
       setNextYearMembership(nextRes.status === 'fulfilled' ? nextRes.value.data : null)
+      setMemberProfile(profileRes.status === 'fulfilled' ? profileRes.value.data : null)
     } catch {
       setMembership(null)
       setNextYearMembership(null)
@@ -51,6 +58,12 @@ export default function DashboardPage() {
       address: user?.address || '',
       emergency_contact: user?.emergency_contact || '',
       emergency_phone: user?.emergency_phone || '',
+      blood_group: memberProfile?.blood_group || '',
+      photo_url: memberProfile?.photo_url || '',
+      strava_link: memberProfile?.strava_link || '',
+      profession: memberProfile?.profession || '',
+      interests: memberProfile?.interests || '',
+      bio: memberProfile?.bio || '',
     })
     setSaveError('')
     setEditing(true)
@@ -60,14 +73,44 @@ export default function DashboardPage() {
     setSaveLoading(true)
     setSaveError('')
     try {
-      await authApi.updateProfile(data)
+      const { blood_group, photo_url, strava_link, profession, interests, bio, ...coreData } = data
+      await Promise.all([
+        authApi.updateProfile(coreData),
+        authApi.updateMyProfile({ blood_group, photo_url, strava_link, profession, interests, bio }),
+      ])
       await fetchMe()
+      const profileRes = await authApi.getMyProfile()
+      setMemberProfile(profileRes.data)
       setEditing(false)
     } catch (err) {
       setSaveError(err.response?.data?.detail || 'Failed to save. Try again.')
     } finally {
       setSaveLoading(false)
     }
+  }
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 512000) {
+      setPhotoError('Image must be under 500KB')
+      return
+    }
+    setPhotoError('')
+    setPhotoUploading(true)
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      try {
+        const res = await authApi.uploadPhoto(ev.target.result)
+        setMemberProfile(res.data)
+      } catch (err) {
+        setPhotoError(err.response?.data?.detail || 'Upload failed')
+      } finally {
+        setPhotoUploading(false)
+        e.target.value = ''
+      }
+    }
+    reader.readAsDataURL(file)
   }
 
   const loadRazorpay = () =>
@@ -107,7 +150,6 @@ export default function DashboardPage() {
     } catch (err) {
       alert(err.response?.data?.detail || 'Could not start renewal')
     } finally {
-      // Always reset — rzp.open() is synchronous, Razorpay modal takes over from here
       setRenewLoading(false)
     }
   }
@@ -122,9 +164,7 @@ export default function DashboardPage() {
 
   const today = new Date()
   const currentYear = today.getFullYear()
-  // Renewal window: March 1 onwards (month index 2 = March)
   const isRenewalSeason = today.getMonth() >= 2
-
   const isActive = membership?.status === 'active'
   const canRenew = !membership || membership.status === 'expired' || membership.status === 'pending'
   const showNextYearRenew = isActive && isRenewalSeason && !nextYearMembership
@@ -156,7 +196,6 @@ export default function DashboardPage() {
 
           <MembershipBadge membership={membership} />
 
-          {/* Renew button — expired / pending / no membership */}
           {canRenew && (
             <button
               onClick={() => handleRenew(currentYear)}
@@ -169,7 +208,6 @@ export default function DashboardPage() {
             </button>
           )}
 
-          {/* Renew for Next Year — active members, visible from March 1 each year */}
           {showNextYearRenew && (
             <button
               onClick={() => handleRenew(currentYear + 1)}
@@ -198,23 +236,96 @@ export default function DashboardPage() {
           </div>
 
           {!editing ? (
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                ['Full Name', user?.full_name],
-                ['Email', user?.email],
-                ['Phone', user?.phone],
-                ['Age', user?.age],
-                ['Gender', user?.gender],
-                ['Emergency Contact', user?.emergency_contact || '—'],
-              ].map(([label, val]) => (
-                <div key={label}>
-                  <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-                  <p className="text-sm font-medium text-gray-800">{val}</p>
+            <div className="space-y-4">
+              {/* Profile photo */}
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative w-24 h-24">
+                  {memberProfile?.photo_url?.startsWith('data:image/') ? (
+                    <img
+                      src={memberProfile.photo_url}
+                      alt={user?.full_name}
+                      className="w-24 h-24 rounded-full object-cover border-2 border-brand-100 shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-2xl border-2 border-brand-200">
+                      {user?.full_name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={photoUploading}
+                    className="absolute bottom-0 right-0 w-7 h-7 bg-brand-600 hover:bg-brand-700 text-white rounded-full flex items-center justify-center shadow-md transition-colors disabled:opacity-50"
+                    title="Upload photo"
+                  >
+                    {photoUploading
+                      ? <Loader2 size={13} className="animate-spin" />
+                      : <Camera size={13} />}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoChange}
+                  />
                 </div>
-              ))}
+                {photoError && <p className="text-xs text-red-500">{photoError}</p>}
+                <p className="text-xs text-gray-400">Max 500KB · JPG or PNG</p>
+              </div>
+
+              {/* Basic info grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  ['Full Name', user?.full_name],
+                  ['Email', user?.email],
+                  ['Phone', user?.phone],
+                  ['Age', user?.age],
+                  ['Gender', user?.gender],
+                  ['Emergency Contact', user?.emergency_contact || '—'],
+                ].map(([label, val]) => (
+                  <div key={label}>
+                    <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+                    <p className="text-sm font-medium text-gray-800">{val}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Runner profile */}
+              <div className="border-t border-gray-100 pt-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Runner Profile</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">T-Shirt Size</p>
+                    {user?.t_shirt_size
+                      ? <span className="inline-block bg-brand-100 text-brand-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{user.t_shirt_size}</span>
+                      : <p className="text-sm text-gray-400">—</p>}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Blood Group</p>
+                    <p className="text-sm font-medium text-gray-800">{memberProfile?.blood_group || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Profession</p>
+                    <p className="text-sm font-medium text-gray-800">{memberProfile?.profession || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Strava</p>
+                    {memberProfile?.strava_link
+                      ? <a href={memberProfile.strava_link} target="_blank" rel="noopener noreferrer" className="text-sm text-brand-600 hover:underline truncate block">View Profile</a>
+                      : <p className="text-sm text-gray-400">—</p>}
+                  </div>
+                  {memberProfile?.bio && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-gray-400 mb-0.5">Bio</p>
+                      <p className="text-sm text-gray-700">{memberProfile.bio}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit(onSaveProfile)} className="flex flex-col gap-4">
+              {/* Core user fields */}
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="Full Name" required error={errors.full_name?.message}>
                   <input className="input-field" {...register('full_name', { required: 'Required' })} />
@@ -249,6 +360,39 @@ export default function DashboardPage() {
                 </FormField>
                 <FormField label="Emergency Phone" error={errors.emergency_phone?.message}>
                   <input className="input-field" placeholder="Phone number" {...register('emergency_phone')} />
+                </FormField>
+              </div>
+
+              {/* Runner profile fields */}
+              <div className="border-t border-gray-100 pt-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Runner Profile</p>
+                <div className="mb-3 flex items-center gap-2">
+                  <p className="text-xs text-gray-500">T-Shirt Size</p>
+                  {user?.t_shirt_size
+                    ? <span className="inline-block bg-brand-100 text-brand-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{user.t_shirt_size}</span>
+                    : <span className="text-xs text-gray-400">— (contact admin to update)</span>}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Blood Group" error={errors.blood_group?.message}>
+                    <select className="input-field" {...register('blood_group')}>
+                      <option value="">Select (optional)</option>
+                      {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                        <option key={bg} value={bg}>{bg}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                  <FormField label="Profession" error={errors.profession?.message}>
+                    <input className="input-field" placeholder="e.g. Software Engineer" {...register('profession')} />
+                  </FormField>
+                  <FormField label="Strava Profile URL" error={errors.strava_link?.message}>
+                    <input className="input-field" placeholder="https://strava.com/athletes/..." {...register('strava_link')} />
+                  </FormField>
+                </div>
+                <FormField label="Interests" error={errors.interests?.message}>
+                  <input className="input-field" placeholder="e.g. trail running, cycling, swimming" {...register('interests')} />
+                </FormField>
+                <FormField label="Bio" error={errors.bio?.message}>
+                  <textarea className="input-field resize-none" rows={3} placeholder="Tell us about yourself…" {...register('bio')} />
                 </FormField>
               </div>
 

@@ -1,10 +1,11 @@
+import re
 import pyotp
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException, status
 
-from app.models.models import User
+from app.models.models import User, MemberProfile
 from app.core.security import hash_password, verify_password, create_access_token
 from app.schemas.schemas import RegisterRequest
 
@@ -36,6 +37,17 @@ class UserService:
         result = await self.db.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
+    async def get_or_create_profile(self, user_id) -> MemberProfile:
+        result = await self.db.execute(
+            select(MemberProfile).where(MemberProfile.user_id == user_id)
+        )
+        profile = result.scalar_one_or_none()
+        if not profile:
+            profile = MemberProfile(user_id=user_id)
+            self.db.add(profile)
+            await self.db.flush()
+        return profile
+
     async def register(self, data: RegisterRequest) -> User:
         existing = await self.get_by_email(data.email)
         if existing:
@@ -43,19 +55,32 @@ class UserService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Email already registered",
             )
+        # Normalize phone to last 10 digits
+        digits = re.sub(r'\D', '', data.phone)[-10:]
+        existing_phone = await self.get_by_phone(digits)
+        if existing_phone:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Phone number already registered",
+            )
         user = User(
             full_name=data.full_name,
             email=data.email.lower(),
-            phone=data.phone,
+            phone=digits,
             age=data.age,
             gender=data.gender,
             address=data.address,
             emergency_contact=data.emergency_contact,
             emergency_phone=data.emergency_phone,
+            t_shirt_size=data.t_shirt_size,
             hashed_password=hash_password(data.password) if data.password else None,
             otp_secret=pyotp.random_base32(),
         )
         self.db.add(user)
+        await self.db.flush()
+        # Create empty MemberProfile so relationship always exists
+        profile = MemberProfile(user_id=user.id)
+        self.db.add(profile)
         await self.db.flush()
         return user
 

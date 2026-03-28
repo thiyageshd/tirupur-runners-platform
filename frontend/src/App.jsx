@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage'
 import AdminPage from './pages/AdminPage'
 import EventsPage from './pages/EventsPage'
 import { AboutPage, ContactPage } from './pages/StaticPages'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import { useAuthStore } from './store/authStore'
 import useInactivityLogout from './hooks/useInactivityLogout'
 
@@ -29,6 +30,7 @@ function AppRoutes() {
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/dashboard" element={
         <ProtectedRoute><DashboardPage /></ProtectedRoute>
       } />
