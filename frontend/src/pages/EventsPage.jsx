@@ -12,8 +12,8 @@ const EVENTS = [
     color: 'brand',
   },
   {
-    title: 'Toplight Tirupur Runners Marathon 2025',
-    date: 'August 2, 2025',
+    title: 'Toplight Tirupur Runners Marathon 2026',
+    date: 'August 2, 2026',
     time: '5:00 AM',
     location: 'Tirupur City Circuit',
     category: 'Marathon',

@@ -38,7 +38,7 @@ export function AboutPage() {
             { emoji: '🌅', title: 'Our Mission', desc: 'Inspire the city to lace up, show up, and run together — promoting health, fitness, and community spirit across Tirupur and Tamil Nadu.' },
             { emoji: '🤝', title: 'Community First', desc: 'Over 250 active runners. Every runner matters — from first-timers to ultramarathoners. We train and grow together as one community.' },
             { emoji: '🏙️', title: 'Rooted in Tirupur', desc: "Proud to represent Tirupur — India's knitwear capital — on the national running map since 2013." },
-            { emoji: '🏆', title: 'Toplight Marathon', desc: 'We organize the Toplight Tirupur Runners Marathon — a beloved Tamil Nadu event drawing 3500+ runners. Next edition: August 2, 2025.' },
+            { emoji: '🏆', title: 'Toplight Marathon', desc: 'We organize the Toplight Tirupur Runners Marathon — a beloved Tamil Nadu event drawing 3500+ runners. Next edition: August 2, 2026.' },
           ].map((item) => (
             <div key={item.title} className="card flex gap-4">
               <span className="text-3xl">{item.emoji}</span>

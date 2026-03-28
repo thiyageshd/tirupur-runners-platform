@@ -16,7 +16,7 @@ const FEATURES = [
   },
   {
     title: 'Annual Marathon',
-    desc: 'Toplight Tirupur Runners Marathon — next edition on August 2, 2025.',
+    desc: 'Toplight Tirupur Runners Marathon — next edition on August 2, 2026.',
     emoji: '🏅',
   },
   {
@@ -50,7 +50,7 @@ export default function HomePage() {
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-4 py-1.5 rounded-full text-sm mb-6">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              Next Marathon: August 2, 2025 · Tirupur, Tamil Nadu 🏃
+              Next Marathon: August 2, 2026 · Tirupur, Tamil Nadu 🏃
             </div>
             <h1 className="font-display font-extrabold text-4xl md:text-6xl leading-tight mb-6">
               Lace Up.<br />
@@ -90,7 +90,7 @@ export default function HomePage() {
         <div className="relative rounded-2xl overflow-hidden">
           <img
             src="https://racemart.in/storage/poster/poster-1748432314814.png"
-            alt="Toplight Tirupur Runners Marathon 2025"
+            alt="Toplight Tirupur Runners Marathon 2026"
             className="w-full object-cover max-h-72 rounded-2xl"
             onError={(e) => { e.target.style.display = 'none' }}
           />
@@ -100,7 +100,7 @@ export default function HomePage() {
               <h2 className="font-display font-bold text-2xl md:text-3xl mb-2">
                 Toplight Tirupur Runners Marathon
               </h2>
-              <p className="text-sm text-brand-100 mb-4">August 2, 2025 · 5K · 10K · 21K</p>
+              <p className="text-sm text-brand-100 mb-4">August 2, 2026 · 5K · 10K · 21K</p>
               <Link to="/events" className="inline-flex items-center gap-2 bg-white text-brand-700 font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-brand-50 transition-colors">
                 Event Details <ArrowRight size={14} />
               </Link>
