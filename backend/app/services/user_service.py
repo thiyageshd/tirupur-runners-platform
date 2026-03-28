@@ -17,6 +17,21 @@ class UserService:
         result = await self.db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
+    async def get_by_phone(self, phone: str) -> Optional[User]:
+        result = await self.db.execute(select(User).where(User.phone == phone))
+        return result.scalar_one_or_none()
+
+    async def get_by_identifier(self, identifier: str) -> Optional[User]:
+        """Look up user by email or mobile number."""
+        identifier = identifier.strip()
+        # If it looks like a phone number (digits only, 10 digits), try phone first
+        digits = identifier.replace("+91", "").replace(" ", "").replace("-", "")
+        if digits.isdigit() and len(digits) >= 10:
+            user = await self.get_by_phone(digits[-10:])
+            if user:
+                return user
+        return await self.get_by_email(identifier.lower())
+
     async def get_by_id(self, user_id) -> Optional[User]:
         result = await self.db.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
@@ -44,8 +59,8 @@ class UserService:
         await self.db.flush()
         return user
 
-    async def login_password(self, email: str, password: str) -> str:
-        user = await self.get_by_email(email.lower())
+    async def login_password(self, identifier: str, password: str) -> str:
+        user = await self.get_by_identifier(identifier)
         if not user or not user.hashed_password:
             raise HTTPException(status_code=401, detail="Invalid credentials")
         if not verify_password(password, user.hashed_password):

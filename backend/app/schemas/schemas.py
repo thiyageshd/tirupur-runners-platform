@@ -19,7 +19,7 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    identifier: str = Field(..., description="Email address or mobile number")
     password: str
 
 

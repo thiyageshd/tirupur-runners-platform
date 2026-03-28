@@ -23,14 +23,13 @@ export default function LoginPage() {
 
   const handlePasswordLogin = async (data) => {
     setLoading(true)
-    setError('')
     try {
-      const res = await authApi.login(data)
+      const res = await authApi.login({ identifier: data.identifier, password: data.password })
       setToken(res.data.access_token)
       await fetchMe()
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid credentials')
+      setError(err.response?.data?.detail || 'Invalid credentials. Check your email/mobile and password.')
     } finally {
       setLoading(false)
     }
@@ -91,21 +90,30 @@ export default function LoginPage() {
             ))}
           </div>
 
+          {/* Error — persistent, only clears on new submit or tab switch */}
           {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
-              {error}
+            <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 flex items-start justify-between gap-2">
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={() => setError('')}
+                className="text-red-400 hover:text-red-600 font-bold leading-none shrink-0"
+              >
+                ✕
+              </button>
             </div>
           )}
 
           {/* Password form */}
           {tab === 'password' && (
             <form onSubmit={handleSubmit(handlePasswordLogin)} className="flex flex-col gap-4">
-              <FormField label="Email" required error={errors.email?.message}>
+              <FormField label="Email or Mobile Number" required error={errors.identifier?.message}>
                 <input
-                  type="email"
+                  type="text"
                   className="input-field"
-                  placeholder="you@example.com"
-                  {...register('email', { required: 'Email is required' })}
+                  placeholder="you@email.com or 9876543210"
+                  autoComplete="username"
+                  {...register('identifier', { required: 'Email or mobile number is required' })}
                 />
               </FormField>
               <FormField label="Password" required error={errors.password?.message}>
@@ -113,6 +121,7 @@ export default function LoginPage() {
                   type="password"
                   className="input-field"
                   placeholder="Your password"
+                  autoComplete="current-password"
                   {...register('password', { required: 'Password is required' })}
                 />
               </FormField>

@@ -23,7 +23,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
 @router.post("/login", response_model=TokenResponse)
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     svc = UserService(db)
-    token = await svc.login_password(data.email, data.password)
+    token = await svc.login_password(data.identifier, data.password)
     return {"access_token": token}
 
 
