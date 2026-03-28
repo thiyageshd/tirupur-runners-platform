@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
@@ -37,16 +37,19 @@ class MembershipService:
     async def create_pending_membership(self, user_id, year: int) -> Membership:
         """Creates a pending membership — activated on payment success."""
         existing = await self.get_active_membership(user_id)
-        if existing:
+        # Block only if there's already an active membership for the same or later year
+        if existing and existing.year >= year:
             raise HTTPException(
                 status_code=409,
                 detail=f"Active membership exists until {existing.end_date}",
             )
-        today = date.today()
+        # Membership runs Apr 1 → Mar 31 of following year
+        start_date = date(year, 4, 1)
+        end_date = date(year + 1, 3, 31)
         membership = Membership(
             user_id=user_id,
-            start_date=today,
-            end_date=today + timedelta(days=365),
+            start_date=start_date,
+            end_date=end_date,
             status="pending",
             year=year,
         )
