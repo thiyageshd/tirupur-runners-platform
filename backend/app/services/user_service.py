@@ -1,0 +1,71 @@
+import pyotp
+from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from fastapi import HTTPException, status
+
+from app.models.models import User
+from app.core.security import hash_password, verify_password, create_access_token
+from app.schemas.schemas import RegisterRequest
+
+
+class UserService:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def get_by_email(self, email: str) -> Optional[User]:
+        result = await self.db.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()
+
+    async def get_by_id(self, user_id) -> Optional[User]:
+        result = await self.db.execute(select(User).where(User.id == user_id))
+        return result.scalar_one_or_none()
+
+    async def register(self, data: RegisterRequest) -> User:
+        existing = await self.get_by_email(data.email)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already registered",
+            )
+        user = User(
+            full_name=data.full_name,
+            email=data.email.lower(),
+            phone=data.phone,
+            age=data.age,
+            gender=data.gender,
+            address=data.address,
+            emergency_contact=data.emergency_contact,
+            emergency_phone=data.emergency_phone,
+            hashed_password=hash_password(data.password) if data.password else None,
+            otp_secret=pyotp.random_base32(),
+        )
+        self.db.add(user)
+        await self.db.flush()
+        return user
+
+    async def login_password(self, email: str, password: str) -> str:
+        user = await self.get_by_email(email.lower())
+        if not user or not user.hashed_password:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        if not verify_password(password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        return create_access_token(user.email, user.is_admin)
+
+    async def generate_otp(self, email: str) -> str:
+        """Returns OTP string — caller sends it via email/SMS."""
+        user = await self.get_by_email(email.lower())
+        if not user:
+            # Don't reveal whether email exists
+            return "000000"
+        totp = pyotp.TOTP(user.otp_secret, interval=300)  # 5-min window
+        return totp.now()
+
+    async def verify_otp(self, email: str, otp: str) -> str:
+        user = await self.get_by_email(email.lower())
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid OTP")
+        totp = pyotp.TOTP(user.otp_secret, interval=300)
+        if not totp.verify(otp, valid_window=1):
+            raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+        return create_access_token(user.email, user.is_admin)

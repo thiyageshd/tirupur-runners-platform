@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: tirupur-runners-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: MEMBERSHIP_AMOUNT_PAISE
+        value: "50000"
+      - key: DEBUG
+        value: "False"
+      - key: FRONTEND_URL
+        value: "https://tirupurrunners.vercel.app"

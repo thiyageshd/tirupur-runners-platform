@@ -1,0 +1,175 @@
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { Link, useNavigate } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
+import FormField from '../components/ui/FormField'
+import { authApi } from '../api'
+import { useAuthStore } from '../store/authStore'
+
+export default function LoginPage() {
+  const [tab, setTab] = useState('password') // 'password' | 'otp'
+  const [otpSent, setOtpSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const { setToken, fetchMe } = useAuthStore()
+  const navigate = useNavigate()
+
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors },
+  } = useForm()
+
+  const handlePasswordLogin = async (data) => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await authApi.login(data)
+      setToken(res.data.access_token)
+      await fetchMe()
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Invalid credentials')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRequestOtp = async () => {
+    const email = getValues('email')
+    if (!email) { setError('Enter your email first'); return }
+    setLoading(true)
+    setError('')
+    try {
+      await authApi.requestOtp(email)
+      setOtpSent(true)
+    } catch {
+      setError('Could not send OTP. Try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOtpLogin = async (data) => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await authApi.verifyOtp(data.email, data.otp)
+      setToken(res.data.access_token)
+      await fetchMe()
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Invalid OTP')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen pt-20 pb-12 px-4 bg-gray-50 flex items-center justify-center">
+      <div className="max-w-md w-full">
+        <div className="text-center mb-8">
+          <h1 className="font-display font-bold text-3xl text-gray-900 mb-2">Welcome back</h1>
+          <p className="text-gray-500 text-sm">Sign in to your Tirupur Runners account</p>
+        </div>
+
+        <div className="card">
+          {/* Tabs */}
+          <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
+            {['password', 'otp'].map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => { setTab(t); setError(''); setOtpSent(false) }}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+                  tab === t ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {t === 'password' ? 'Password' : 'OTP Login'}
+              </button>
+            ))}
+          </div>
+
+          {error && (
+            <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
+          {/* Password form */}
+          {tab === 'password' && (
+            <form onSubmit={handleSubmit(handlePasswordLogin)} className="flex flex-col gap-4">
+              <FormField label="Email" required error={errors.email?.message}>
+                <input
+                  type="email"
+                  className="input-field"
+                  placeholder="you@example.com"
+                  {...register('email', { required: 'Email is required' })}
+                />
+              </FormField>
+              <FormField label="Password" required error={errors.password?.message}>
+                <input
+                  type="password"
+                  className="input-field"
+                  placeholder="Your password"
+                  {...register('password', { required: 'Password is required' })}
+                />
+              </FormField>
+              <button type="submit" className="btn-primary w-full mt-1" disabled={loading}>
+                {loading ? <><Loader2 size={16} className="animate-spin" /> Signing in…</> : 'Sign In'}
+              </button>
+            </form>
+          )}
+
+          {/* OTP form */}
+          {tab === 'otp' && (
+            <form onSubmit={handleSubmit(handleOtpLogin)} className="flex flex-col gap-4">
+              <FormField label="Email" required error={errors.email?.message}>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    className="input-field flex-1"
+                    placeholder="you@example.com"
+                    {...register('email', { required: 'Email is required' })}
+                  />
+                  <button
+                    type="button"
+                    className="btn-outline whitespace-nowrap py-3 px-4 text-sm"
+                    onClick={handleRequestOtp}
+                    disabled={loading || otpSent}
+                  >
+                    {otpSent ? 'Sent ✓' : 'Send OTP'}
+                  </button>
+                </div>
+              </FormField>
+
+              {otpSent && (
+                <FormField label="Enter OTP" required error={errors.otp?.message}
+                  hint="Check your email — OTP valid for 5 minutes">
+                  <input
+                    className="input-field tracking-widest text-lg font-mono text-center"
+                    placeholder="• • • • • •"
+                    maxLength={6}
+                    {...register('otp', { required: 'OTP is required', minLength: { value: 6, message: '6-digit OTP' } })}
+                  />
+                </FormField>
+              )}
+
+              {otpSent && (
+                <button type="submit" className="btn-primary w-full" disabled={loading}>
+                  {loading ? <><Loader2 size={16} className="animate-spin" /> Verifying…</> : 'Verify & Login'}
+                </button>
+              )}
+            </form>
+          )}
+
+          <p className="text-center text-sm text-gray-500 mt-5">
+            New to Tirupur Runners?{' '}
+            <Link to="/register" className="text-brand-600 font-medium hover:underline">Join now</Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
