@@ -67,6 +67,15 @@ class UserService:
             raise HTTPException(status_code=401, detail="Invalid credentials")
         return create_access_token(user.email, user.is_admin)
 
+    async def update_profile(self, user_id, data) -> User:
+        user = await self.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        for field, value in data.model_dump(exclude_none=True).items():
+            setattr(user, field, value)
+        await self.db.flush()
+        return user
+
     async def generate_otp(self, email: str) -> str:
         """Returns OTP string — caller sends it via email/SMS."""
         user = await self.get_by_email(email.lower())

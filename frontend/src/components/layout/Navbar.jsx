@@ -7,7 +7,7 @@ const NAV_LINKS = [
   { to: '/', label: 'Home' },
   { to: '/about', label: 'About' },
   { to: '/events', label: 'Events' },
-  { to: '/register', label: 'Join Us' },
+  { to: '/register', label: 'Join Us', guestOnly: true },
   { to: '/contact', label: 'Contact' },
 ]
 
@@ -46,7 +46,7 @@ export default function Navbar() {
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-1">
-          {NAV_LINKS.map((link) => (
+          {NAV_LINKS.filter(link => !(link.guestOnly && user)).map((link) => (
             <Link
               key={link.to}
               to={link.to}
@@ -100,7 +100,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-1">
-          {NAV_LINKS.map((link) => (
+          {NAV_LINKS.filter(link => !(link.guestOnly && user)).map((link) => (
             <Link
               key={link.to}
               to={link.to}

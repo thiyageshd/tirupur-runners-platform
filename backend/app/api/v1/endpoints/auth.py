@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.schemas.schemas import (
     RegisterRequest, LoginRequest, OTPRequest,
-    OTPVerifyRequest, TokenResponse, UserResponse
+    OTPVerifyRequest, TokenResponse, UserResponse, UpdateProfileRequest
 )
 from app.services.user_service import UserService
 from app.core.security import get_current_user
@@ -49,3 +49,13 @@ async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db))
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user=Depends(get_current_user)):
     return current_user
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_me(
+    data: UpdateProfileRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    svc = UserService(db)
+    return await svc.update_profile(current_user.id, data)

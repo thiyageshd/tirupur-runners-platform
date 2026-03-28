@@ -35,6 +35,7 @@ export const authApi = {
   requestOtp: (email) => apiClient.post('/auth/otp/request', { email }),
   verifyOtp: (email, otp) => apiClient.post('/auth/otp/verify', { email, otp }),
   me: () => apiClient.get('/auth/me'),
+  updateProfile: (data) => apiClient.put('/auth/me', data),
 }
 
 // ─── Memberships ───────────────────────────────────────────────────────────

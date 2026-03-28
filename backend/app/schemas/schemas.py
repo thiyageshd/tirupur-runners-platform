@@ -32,6 +32,16 @@ class OTPVerifyRequest(BaseModel):
     otp: str = Field(..., min_length=6, max_length=6)
 
 
+class UpdateProfileRequest(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=2, max_length=200)
+    phone: Optional[str] = Field(None, pattern=r"^\+?[6-9]\d{9}$")
+    age: Optional[int] = Field(None, ge=5, le=100)
+    gender: Optional[str] = Field(None, pattern=r"^(male|female|other|not_specified)$")
+    address: Optional[str] = Field(None, max_length=500)
+    emergency_contact: Optional[str] = Field(None, max_length=200)
+    emergency_phone: Optional[str] = None
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
