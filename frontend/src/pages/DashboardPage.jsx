@@ -10,6 +10,7 @@ import FormField from '../components/ui/FormField'
 export default function DashboardPage() {
   const { user, logout, fetchMe } = useAuthStore()
   const [membership, setMembership] = useState(null)
+  const [nextYearMembership, setNextYearMembership] = useState(null)
   const [loading, setLoading] = useState(true)
   const [renewLoading, setRenewLoading] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -25,11 +26,17 @@ export default function DashboardPage() {
   }, [user])
 
   const fetchMembership = async () => {
+    const year = new Date().getFullYear()
     try {
-      const res = await membershipApi.getMy()
-      setMembership(res.data)
+      const [currentRes, nextRes] = await Promise.allSettled([
+        membershipApi.getMy(),
+        membershipApi.getMy(year + 1),
+      ])
+      setMembership(currentRes.status === 'fulfilled' ? currentRes.value.data : null)
+      setNextYearMembership(nextRes.status === 'fulfilled' ? nextRes.value.data : null)
     } catch {
       setMembership(null)
+      setNextYearMembership(null)
     } finally {
       setLoading(false)
     }
@@ -120,7 +127,7 @@ export default function DashboardPage() {
 
   const isActive = membership?.status === 'active'
   const canRenew = !membership || membership.status === 'expired' || membership.status === 'pending'
-  const showNextYearRenew = isActive && isRenewalSeason && membership.year < currentYear + 1
+  const showNextYearRenew = isActive && isRenewalSeason && !nextYearMembership
 
   const renewLabel = !membership
     ? 'Get Membership — ₹2,000'

@@ -41,7 +41,7 @@ export const authApi = {
 // ─── Memberships ───────────────────────────────────────────────────────────
 
 export const membershipApi = {
-  getMy: () => apiClient.get('/memberships/my'),
+  getMy: (year) => apiClient.get('/memberships/my', { params: year ? { year } : {} }),
   getActive: () => apiClient.get('/memberships/my/active'),
 }
 
