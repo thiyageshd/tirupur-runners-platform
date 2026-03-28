@@ -82,7 +82,7 @@ class PaymentService:
         rz_order = self.rz.order.create({
             "amount": amount_paise,
             "currency": "INR",
-            "receipt": f"rcpt_{user_id}_{year}",
+            "receipt": f"m{str(user_id).replace('-','')[:10]}{year}",
             "notes": {"user_id": str(user_id), "year": str(year)},
         })
 
