@@ -45,6 +45,7 @@ from app.models.models import User, Membership
 # ─────────────────────────────────────────────────────────────────────────────
 
 def hash_password(password: str) -> str:
+    """Use raw bcrypt — produces $2b$ hashes compatible with passlib verify."""
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 # Excel column indices (0-based)
