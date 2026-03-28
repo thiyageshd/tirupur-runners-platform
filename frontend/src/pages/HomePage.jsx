@@ -16,7 +16,7 @@ const FEATURES = [
   },
   {
     title: 'Annual Marathon',
-    desc: 'Toplight Tirupur Runners Marathon — next edition on August 2, 2025.',
+    desc: 'Toplight Tirupur Runners Marathon — next edition on August 2, 2026.',
     emoji: '🏅',
   },
   {
@@ -41,7 +41,7 @@ export default function HomePage() {
           <div className="flex-1 min-w-0">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-4 py-1.5 rounded-full text-sm mb-6">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              Next Marathon: August 2, 2025 · Tirupur, TN 🏃
+              Next Marathon: August 2, 2026 · Tirupur, TN 🏃
             </div>
             <h1 className="font-display font-extrabold text-4xl md:text-5xl leading-tight mb-5">
               Lace Up.<br />
@@ -67,20 +67,20 @@ export default function HomePage() {
             <div className="relative rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white/20">
               <img
                 src="https://racemart.in/storage/poster/poster-1748432314814.png"
-                alt="Toplight Tirupur Runners Marathon 2025 — August 2"
+                alt="Toplight Tirupur Runners Marathon 2026 — August 2"
                 className="w-full h-auto block"
                 onError={(e) => {
                   e.target.parentElement.innerHTML = `
                     <div class="bg-brand-700 rounded-2xl p-8 text-center text-white">
                       <div class="text-5xl mb-3">🏅</div>
                       <p class="font-bold text-lg">Toplight Tirupur Runners Marathon</p>
-                      <p class="text-brand-200 text-sm mt-1">August 2, 2025</p>
+                      <p class="text-brand-200 text-sm mt-1">August 2, 2026</p>
                     </div>`
                 }}
               />
               {/* Date badge */}
               <div className="absolute bottom-3 left-3 right-3 bg-brand-900/80 backdrop-blur rounded-xl px-4 py-2.5 text-center">
-                <p className="text-white font-bold text-sm">August 2, 2025</p>
+                <p className="text-white font-bold text-sm">August 2, 2026</p>
                 <p className="text-brand-200 text-xs">5K · 10K · 21K</p>
               </div>
             </div>
