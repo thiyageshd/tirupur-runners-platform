@@ -7,20 +7,31 @@ from app.core.config import settings
 
 def _make_engine():
     url = settings.DATABASE_URL
-    kwargs: dict = dict(
-        pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20,
-        echo=settings.DEBUG,
-    )
+
+    # Render injects plain postgres:// or postgresql:// — normalise to asyncpg driver
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            url = "postgresql+asyncpg://" + url[len(prefix):]
+            break
+
     # asyncpg cannot parse ssl/sslmode from the query string — strip it and
     # pass an ssl context via connect_args instead.
     needs_ssl = any(p in url for p in ("ssl=require", "sslmode=require"))
     for p in ("?ssl=require", "&ssl=require", "?sslmode=require", "&sslmode=require"):
         url = url.replace(p, "")
     if needs_ssl:
-        kwargs["connect_args"] = {"ssl": ssl.create_default_context()}
-    return create_async_engine(url, **kwargs)
+        kwargs = dict(connect_args={"ssl": ssl.create_default_context()})
+    else:
+        kwargs = {}
+
+    return create_async_engine(
+        url,
+        pool_pre_ping=True,
+        pool_size=10,
+        max_overflow=20,
+        echo=settings.DEBUG,
+        **kwargs,
+    )
 
 
 engine = _make_engine()
