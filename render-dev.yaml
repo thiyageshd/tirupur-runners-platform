@@ -18,10 +18,13 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: RAZORPAY_KEY_ID
+        value: rzp_test_SWZaFHz5JV0xYQ
         sync: false                      # Use Razorpay TEST key
       - key: RAZORPAY_KEY_SECRET
+        value: kQDQE8uOUek1C21UPlr77tWh
         sync: false                      # Use Razorpay TEST secret
       - key: RAZORPAY_WEBHOOK_SECRET
+        value: kQDQE8uOUek1C21UPlr77tWh
         sync: false
       - key: MEMBERSHIP_AMOUNT_PAISE
         value: "200000"
