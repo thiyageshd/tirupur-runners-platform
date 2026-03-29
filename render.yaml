@@ -36,8 +36,9 @@ services:
         value: "https://tirupur-runners-web.onrender.com"
 
   # ─── Frontend: React + Vite (Static Site) ─────────────────────────────────
-  - type: static
+  - type: web
     name: tirupur-runners-web
+    runtime: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist

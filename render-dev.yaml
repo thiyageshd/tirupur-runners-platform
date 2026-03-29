@@ -1,7 +1,5 @@
 ## Render Blueprint — DEVELOPMENT / STAGING
 ## Linked to: dev branch
-## To deploy: In Render dashboard, create a new Blueprint and point to this file
-##             OR use "render blueprint" CLI with --file render-dev.yaml
 
 services:
   # ─── Backend: FastAPI (Dev) ────────────────────────────────────────────────
@@ -14,18 +12,15 @@ services:
     plan: free
     envVars:
       - key: DATABASE_URL
-        sync: false                      # Set in Render dashboard (Neon dev branch/project)
+        sync: false
       - key: SECRET_KEY
         generateValue: true
       - key: RAZORPAY_KEY_ID
         value: rzp_test_SWZaFHz5JV0xYQ
-        sync: false                      # Use Razorpay TEST key
       - key: RAZORPAY_KEY_SECRET
         value: kQDQE8uOUek1C21UPlr77tWh
-        sync: false                      # Use Razorpay TEST secret
       - key: RAZORPAY_WEBHOOK_SECRET
         value: kQDQE8uOUek1C21UPlr77tWh
-        sync: false
       - key: MEMBERSHIP_AMOUNT_PAISE
         value: "200000"
       - key: DEBUG
@@ -40,8 +35,9 @@ services:
         value: "https://tirupur-runners-web-dev.onrender.com"
 
   # ─── Frontend: React + Vite (Dev Static Site) ─────────────────────────────
-  - type: static
+  - type: web
     name: tirupur-runners-web-dev
+    runtime: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
