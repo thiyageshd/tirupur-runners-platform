@@ -32,14 +32,24 @@ SKIP   = {"payments"}
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def to_asyncpg_dsn(url: str) -> str:
-    """Strip SQLAlchemy driver prefix so asyncpg can connect directly."""
-    return url.replace("postgresql+asyncpg://", "postgresql://")
+def to_asyncpg_dsn(url: str) -> tuple[str, bool]:
+    """
+    Strip SQLAlchemy driver prefix and extract ssl=require flag.
+    asyncpg doesn't parse ssl from the query string — it must be passed as a kwarg.
+    Returns (cleaned_dsn, needs_ssl).
+    """
+    dsn = url.replace("postgresql+asyncpg://", "postgresql://")
+    needs_ssl = any(p in dsn for p in ("ssl=require", "sslmode=require"))
+    # Remove ssl params so asyncpg doesn't choke on unknown query params
+    for param in ("?ssl=require", "&ssl=require", "?sslmode=require", "&sslmode=require"):
+        dsn = dsn.replace(param, "")
+    return dsn, needs_ssl
 
 
 async def connect(url: str) -> asyncpg.Connection:
-    dsn = to_asyncpg_dsn(url)
-    # Render requires SSL; honour ?ssl=require / ?sslmode=require from the URL
+    dsn, needs_ssl = to_asyncpg_dsn(url)
+    if needs_ssl:
+        return await asyncpg.connect(dsn, ssl="require")
     return await asyncpg.connect(dsn)
 
 

@@ -12,7 +12,7 @@ services:
     plan: free
     envVars:
       - key: DATABASE_URL
-        sync: false
+        value: "postgresql+asyncpg://tirupur_runners_user:Havsfdt0oZp0S7chCRJEQSAgplBFntPI@dpg-d74bn8oule4c73evi4e0-a/tirupur_runners_dev"
       - key: SECRET_KEY
         generateValue: true
       - key: RAZORPAY_KEY_ID
