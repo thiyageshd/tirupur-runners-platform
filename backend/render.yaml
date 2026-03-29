@@ -1,24 +1,4 @@
-services:
-  - type: web
-    name: tirupur-runners-api
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    # ONE-TIME MIGRATION: resets all imported member passwords to their phone number.
-    # REMOVE this line after the first successful deploy to avoid overwriting user-set passwords.
-    preDeployCommand: python scripts/reset_passwords.py
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: SECRET_KEY
-        generateValue: true
-      - key: RAZORPAY_KEY_ID
-        sync: false
-      - key: RAZORPAY_KEY_SECRET
-        sync: false
-      - key: MEMBERSHIP_AMOUNT_PAISE
-        value: "50000"
-      - key: DEBUG
-        value: "False"
-      - key: FRONTEND_URL
-        value: "https://tirupurrunners.vercel.app"
+# DEPRECATED — this file has been superseded by /render.yaml (repo root).
+# Render Blueprints read render.yaml from the repo root.
+# See: /render.yaml  (production)
+#      /render-dev.yaml  (development / staging)

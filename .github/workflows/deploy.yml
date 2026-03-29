@@ -1,0 +1,50 @@
+name: Deploy to Render
+
+# Triggers:
+#   push to main → production deploy
+#   push to dev  → development/staging deploy
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - "frontend/**"
+      - "backend/**"
+      - "render.yaml"
+      - "render-dev.yaml"
+      - ".github/workflows/deploy.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+
+    steps:
+      - name: Resolve environment
+        id: env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "name=prod" >> $GITHUB_OUTPUT
+          else
+            echo "name=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Render backend deploy
+        run: |
+          HOOK="${{ steps.env.outputs.name == 'prod'
+            && secrets.RENDER_BACKEND_DEPLOY_HOOK_PROD
+            || secrets.RENDER_BACKEND_DEPLOY_HOOK_DEV }}"
+          if [[ "${{ steps.env.outputs.name }}" == "prod" ]]; then
+            curl -fsSX POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_PROD }}"
+          else
+            curl -fsSX POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_DEV }}"
+          fi
+
+      - name: Trigger Render frontend deploy
+        run: |
+          if [[ "${{ steps.env.outputs.name }}" == "prod" ]]; then
+            curl -fsSX POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_PROD }}"
+          else
+            curl -fsSX POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_DEV }}"
+          fi

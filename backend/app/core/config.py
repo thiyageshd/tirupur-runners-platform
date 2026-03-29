@@ -1,3 +1,4 @@
+import os
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -35,7 +36,11 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "https://tirupurrunners.com"
 
     class Config:
-        env_file = ".env"
+        # Allow selecting env file via ENV_FILE env var:
+        #   ENV_FILE=.env.dev uvicorn main:app --reload   → loads .env.dev
+        #   ENV_FILE=.env.prod uvicorn main:app           → loads .env.prod
+        #   (default)                                     → loads .env
+        env_file = os.getenv("ENV_FILE", ".env")
         case_sensitive = True
 
 

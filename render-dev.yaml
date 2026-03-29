@@ -1,0 +1,51 @@
+## Render Blueprint — DEVELOPMENT / STAGING
+## Linked to: dev branch
+## To deploy: In Render dashboard, create a new Blueprint and point to this file
+##             OR use "render blueprint" CLI with --file render-dev.yaml
+
+services:
+  # ─── Backend: FastAPI (Dev) ────────────────────────────────────────────────
+  - type: web
+    name: tirupur-runners-api-dev
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false                      # Set in Render dashboard (Neon dev branch/project)
+      - key: SECRET_KEY
+        generateValue: true
+      - key: RAZORPAY_KEY_ID
+        sync: false                      # Use Razorpay TEST key
+      - key: RAZORPAY_KEY_SECRET
+        sync: false                      # Use Razorpay TEST secret
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: MEMBERSHIP_AMOUNT_PAISE
+        value: "200000"
+      - key: DEBUG
+        value: "True"
+      - key: ADMIN_EMAIL
+        value: "admin@tirupurrunners.com"
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        value: "noreply@tirupurrunners.com"
+      - key: FRONTEND_URL
+        value: "https://tirupur-runners-web-dev.onrender.com"
+
+  # ─── Frontend: React + Vite (Dev Static Site) ─────────────────────────────
+  - type: static
+    name: tirupur-runners-web-dev
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: "https://tirupur-runners-api-dev.onrender.com/api/v1"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
