@@ -1,10 +1,10 @@
 # DEPRECATED — replaced by .github/workflows/deploy.yml (Render deployment)
-# This file is intentionally left empty / disabled.
+# Kept as a valid no-op workflow to avoid deletion conflicts.
 name: "[disabled] Deploy Frontend to Cloudflare Pages"
 on:
   workflow_dispatch:
-    inputs:
-      reason:
-        description: "Disabled — use deploy.yml for Render instead"
-        required: false
-jobs: {}
+jobs:
+  disabled:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "This workflow is disabled. Deployments now use deploy.yml via Render."
