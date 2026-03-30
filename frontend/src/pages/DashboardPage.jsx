@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [pwLoading, setPwLoading] = useState(false)
   const [pwError, setPwError] = useState('')
   const [pwSuccess, setPwSuccess] = useState(false)
-  const { register: registerPw, handleSubmit: handleSubmitPw, reset: resetPw, formState: { errors: pwErrors } } = useForm()
+  const { register: registerPw, handleSubmit: handleSubmitPw, reset: resetPw, watch: watchPw, formState: { errors: pwErrors } } = useForm()
 
   useEffect(() => {
     if (!user) { navigate('/members/login'); return }
@@ -721,6 +721,17 @@ export default function DashboardPage() {
                     {...registerPw('new_password', {
                       required: 'Required',
                       minLength: { value: 8, message: 'Minimum 8 characters' },
+                    })}
+                  />
+                </FormField>
+                <FormField label="Confirm New Password" required error={pwErrors.confirm_new_password?.message}>
+                  <input
+                    type="password"
+                    className="input-field"
+                    placeholder="Repeat new password"
+                    {...registerPw('confirm_new_password', {
+                      required: 'Required',
+                      validate: (val) => val === watchPw('new_password') || 'Passwords do not match',
                     })}
                   />
                 </FormField>
