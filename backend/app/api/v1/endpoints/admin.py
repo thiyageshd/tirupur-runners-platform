@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 
 from app.db.session import get_db
-from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult, TshirtUpdateRequest, PendingUserItem
+from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult, TshirtUpdateRequest, PendingUserItem, MembershipIdUpdateRequest
 from app.services.membership_service import MembershipService
 from app.models.models import User, Membership, Payment
 from app.core.security import get_current_admin
@@ -398,3 +398,27 @@ async def delete_user(
 
     # Any other statuses are not deletable
     raise HTTPException(status_code=400, detail="Cannot delete user with current status")
+
+
+@router.put("/memberships/{membership_uuid}/membership-id")
+async def update_membership_id(
+    membership_uuid: uuid_module.UUID,
+    data: MembershipIdUpdateRequest,
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    # Check uniqueness
+    existing = await db.execute(
+        select(Membership).where(Membership.membership_id == data.membership_id)
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail=f"Membership ID '{data.membership_id}' is already in use")
+
+    result = await db.execute(select(Membership).where(Membership.id == membership_uuid))
+    membership = result.scalar_one_or_none()
+    if not membership:
+        raise HTTPException(status_code=404, detail="Membership not found")
+
+    membership.membership_id = data.membership_id
+    await db.flush()
+    return {"membership_uuid": str(membership.id), "membership_id": membership.membership_id}

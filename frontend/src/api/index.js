@@ -81,6 +81,8 @@ export const adminApi = {
   approveUser: (id) => apiClient.put(`/admin/users/${id}/approve`),
   rejectUser: (id) => apiClient.put(`/admin/users/${id}/reject`),
   deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),
+  updateMembershipId: (membershipUuid, membership_id) =>
+    apiClient.put(`/admin/memberships/${membershipUuid}/membership-id`, { membership_id }),
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────

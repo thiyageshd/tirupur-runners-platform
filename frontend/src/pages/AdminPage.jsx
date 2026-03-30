@@ -42,6 +42,11 @@ export default function AdminPage() {
   const [tshirtEditValue, setTshirtEditValue] = useState('')
   const [savingTshirt, setSavingTshirt] = useState(null)
 
+  // Membership ID inline editing
+  const [editingMembershipId, setEditingMembershipId] = useState(null)
+  const [membershipIdValue, setMembershipIdValue] = useState('')
+  const [savingMembershipId, setSavingMembershipId] = useState(null)
+
   // Approvals tab
   const [pendingUsers, setPendingUsers] = useState([])
   const [pendingLoading, setPendingLoading] = useState(false)
@@ -116,6 +121,22 @@ export default function AdminPage() {
       alert(err.response?.data?.detail || 'Failed to reject')
     } finally {
       setRejectingUser(null)
+    }
+  }
+
+  const handleSaveMembershipId = async (membershipUuid) => {
+    if (!membershipIdValue.trim()) return
+    setSavingMembershipId(membershipUuid)
+    try {
+      await adminApi.updateMembershipId(membershipUuid, membershipIdValue.trim())
+      setMembers((prev) =>
+        prev.map((m) => m.membership_uuid === membershipUuid ? { ...m, membership_id: membershipIdValue.trim() } : m)
+      )
+      setEditingMembershipId(null)
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update membership ID')
+    } finally {
+      setSavingMembershipId(null)
     }
   }
 
@@ -383,7 +404,7 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
-                      {['Name', 'Email', 'Phone', 'Age', 'Gender', 'T-Shirt', 'Status', 'Year', 'Valid Until', 'Joined', 'Admin'].map((h) => (
+                      {['Name', 'Email', 'Phone', 'Age', 'Gender', 'T-Shirt', 'Member ID', 'Aadhar', 'Status', 'Year', 'Valid Until', 'Joined', 'Admin'].map((h) => (
                         <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                           {h}
                         </th>
@@ -393,7 +414,7 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-gray-50">
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={11} className="text-center py-12 text-gray-400">No members found</td>
+                        <td colSpan={13} className="text-center py-12 text-gray-400">No members found</td>
                       </tr>
                     ) : (
                       filtered.map((m) => (
@@ -448,6 +469,56 @@ export default function AdminPage() {
                                   <Pencil size={11} />
                                 </button>
                               </span>
+                            )}
+                          </td>
+                          {/* Member ID */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {editingMembershipId === m.membership_uuid ? (
+                              <span className="flex items-center gap-1">
+                                <input
+                                  value={membershipIdValue}
+                                  onChange={(e) => setMembershipIdValue(e.target.value)}
+                                  className="text-xs border border-gray-300 rounded px-1.5 py-1 w-28"
+                                  placeholder="e.g. 202603TR01"
+                                />
+                                <button
+                                  onClick={() => handleSaveMembershipId(m.membership_uuid)}
+                                  disabled={!membershipIdValue.trim() || savingMembershipId === m.membership_uuid}
+                                  className="text-green-600 hover:bg-green-50 p-1 rounded disabled:opacity-40"
+                                >
+                                  {savingMembershipId === m.membership_uuid
+                                    ? <Loader2 size={12} className="animate-spin" />
+                                    : <Check size={12} />}
+                                </button>
+                                <button onClick={() => setEditingMembershipId(null)} className="text-gray-400 hover:bg-gray-100 p-1 rounded">
+                                  <X size={12} />
+                                </button>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1.5">
+                                <span className="text-xs font-mono text-gray-700">{m.membership_id || '—'}</span>
+                                <button
+                                  onClick={() => { setEditingMembershipId(m.membership_uuid); setMembershipIdValue(m.membership_id || '') }}
+                                  className="text-gray-300 hover:text-brand-600 p-0.5 rounded"
+                                  title="Edit member ID"
+                                >
+                                  <Pencil size={11} />
+                                </button>
+                              </span>
+                            )}
+                          </td>
+                          {/* Aadhar */}
+                          <td className="px-4 py-3">
+                            {m.aadhar_url ? (
+                              <button
+                                onClick={() => openAadhar(m.aadhar_url, m.full_name)}
+                                className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+                                title="View Aadhar"
+                              >
+                                <FileText size={13} /> View
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-300">—</span>
                             )}
                           </td>
                           <td className="px-4 py-3">

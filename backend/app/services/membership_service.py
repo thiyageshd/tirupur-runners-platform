@@ -1,10 +1,10 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, func
 from fastapi import HTTPException
 
-from app.models.models import Membership, User
+from app.models.models import Membership, User, MemberProfile
 from app.schemas.schemas import MembershipResponse
 
 
@@ -57,6 +57,17 @@ class MembershipService:
         await self.db.flush()
         return membership
 
+    async def generate_membership_id(self) -> str:
+        """Generate next membership ID in format YYYYMMTRnn (e.g. 202603TR01)."""
+        prefix = datetime.now().strftime("%Y%m") + "TR"
+        result = await self.db.execute(
+            select(func.max(Membership.membership_id))
+            .where(Membership.membership_id.like(f"{prefix}%"))
+        )
+        last_id = result.scalar()
+        seq = (int(last_id[len(prefix):]) + 1) if last_id else 1
+        return f"{prefix}{seq:02d}"
+
     async def activate_membership(self, membership_id) -> Membership:
         result = await self.db.execute(
             select(Membership).where(Membership.id == membership_id)
@@ -65,14 +76,17 @@ class MembershipService:
         if not membership:
             raise HTTPException(status_code=404, detail="Membership not found")
         membership.status = "active"
+        if not membership.membership_id:
+            membership.membership_id = await self.generate_membership_id()
         await self.db.flush()
         return membership
 
     async def get_all_with_user(self, status_filter: Optional[str] = None) -> List[dict]:
-        """For admin listing — joins users + memberships."""
+        """For admin listing — joins users + memberships + profiles."""
         query = (
-            select(User, Membership)
+            select(User, Membership, MemberProfile)
             .join(Membership, User.id == Membership.user_id)
+            .outerjoin(MemberProfile, User.id == MemberProfile.user_id)
             .order_by(Membership.created_at.desc())
         )
         if status_filter:
@@ -81,10 +95,9 @@ class MembershipService:
         result = await self.db.execute(query)
         rows = result.all()
 
-        # Deduplicate: one row per user, keeping the latest membership
         seen = set()
         members = []
-        for user, membership in rows:
+        for user, membership, profile in rows:
             if user.id in seen:
                 continue
             seen.add(user.id)
@@ -100,9 +113,12 @@ class MembershipService:
                 "t_shirt_size": user.t_shirt_size,
                 "membership_status": membership.status,
                 "membership_year": membership.year,
+                "membership_id": membership.membership_id,
+                "membership_uuid": str(membership.id),
                 "start_date": membership.start_date,
                 "end_date": membership.end_date,
                 "created_at": user.created_at,
+                "aadhar_url": profile.aadhar_url if profile else None,
             })
         return members
 

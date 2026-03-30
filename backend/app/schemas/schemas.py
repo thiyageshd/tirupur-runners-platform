@@ -119,6 +119,7 @@ class UserResponse(BaseModel):
 class MembershipResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
+    membership_id: Optional[str] = None
     start_date: date
     end_date: date
     status: str
@@ -163,15 +164,21 @@ class MemberListItem(BaseModel):
     gender: str
     is_admin: bool
     t_shirt_size: Optional[str] = None
-    # Account status: 'approved' | 'pending_approval' | 'rejected'
     account_status: str
     membership_status: str
     membership_year: int
+    membership_id: Optional[str] = None
+    membership_uuid: Optional[str] = None
     start_date: Optional[date]
     end_date: Optional[date]
     created_at: datetime
+    aadhar_url: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class MembershipIdUpdateRequest(BaseModel):
+    membership_id: str = Field(..., min_length=3, max_length=20)
 
 
 class AdminStatsResponse(BaseModel):

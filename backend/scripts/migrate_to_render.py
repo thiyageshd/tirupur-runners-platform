@@ -64,13 +64,14 @@ async def create_schema(target_url: str):
     engine = create_async_engine(target_url, echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Schema patches that predate the ORM (same as main.py lifespan)
-        await conn.execute(
-            text("ALTER TABLE users ADD COLUMN IF NOT EXISTS t_shirt_size VARCHAR(10)")
-        )
-        await conn.execute(
-            text("ALTER TABLE member_profiles ALTER COLUMN photo_url TYPE TEXT")
-        )
+        # Schema patches (same as main.py lifespan)
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS t_shirt_size VARCHAR(10)"))
+        await conn.execute(text("ALTER TABLE member_profiles ALTER COLUMN photo_url TYPE TEXT"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact_2 VARCHAR(200)"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_phone_2 VARCHAR(20)"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS account_status VARCHAR(20) NOT NULL DEFAULT 'approved'"))
+        await conn.execute(text("ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS aadhar_url TEXT"))
+        await conn.execute(text("ALTER TABLE memberships ADD COLUMN IF NOT EXISTS membership_id VARCHAR(20) UNIQUE"))
     await engine.dispose()
     print("  ✓ schema ready on target")
 

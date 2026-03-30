@@ -55,6 +55,7 @@ class Membership(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    membership_id = Column(String(20), unique=True, nullable=True, index=True)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     # active | expired | pending
