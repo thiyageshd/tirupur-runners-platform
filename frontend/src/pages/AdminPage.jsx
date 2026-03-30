@@ -47,6 +47,8 @@ export default function AdminPage() {
   const [pendingLoading, setPendingLoading] = useState(false)
   const [approvingUser, setApprovingUser] = useState(null)
   const [rejectingUser, setRejectingUser] = useState(null)
+  const [deletingUser, setDeletingUser] = useState(null)
+  const [deleteToast, setDeleteToast] = useState(false)
 
   // Offline payments tab
   const [uploadFile, setUploadFile] = useState(null)
@@ -114,6 +116,21 @@ export default function AdminPage() {
       alert(err.response?.data?.detail || 'Failed to reject')
     } finally {
       setRejectingUser(null)
+    }
+  }
+
+  const handleDelete = async (userId) => {
+    if (!confirm('Delete this pending registration? This cannot be undone.')) return
+    setDeletingUser(userId)
+    try {
+      await adminApi.deleteUser(userId)
+      setPendingUsers((prev) => prev.filter((u) => u.id !== userId))
+      setDeleteToast(true)
+      setTimeout(() => setDeleteToast(false), 3000)
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete')
+    } finally {
+      setDeletingUser(null)
     }
   }
 
@@ -308,6 +325,12 @@ export default function AdminPage() {
           ))}
         </div>
 
+        {deleteToast && (
+          <div className="mb-4 bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 text-center font-medium">
+            ✅ Pending registration deleted
+          </div>
+        )}
+
         {/* ── Members Tab ── */}
         {activeTab === 'Members' && (
           <>
@@ -425,22 +448,36 @@ export default function AdminPage() {
                           </td>
                           <td className="px-4 py-3">
                             {m.user_id !== user?.id && (
-                              <button
-                                onClick={() => handleToggleAdmin(m)}
-                                disabled={togglingAdmin === m.user_id}
-                                title={m.is_admin ? 'Remove admin' : 'Make admin'}
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  m.is_admin
-                                    ? 'text-amber-500 hover:bg-amber-50'
-                                    : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
-                                }`}
-                              >
-                                {togglingAdmin === m.user_id
-                                  ? <Loader2 size={14} className="animate-spin" />
-                                  : m.is_admin
-                                  ? <ShieldOff size={14} />
-                                  : <Shield size={14} />}
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleToggleAdmin(m)}
+                                  disabled={togglingAdmin === m.user_id}
+                                  title={m.is_admin ? 'Remove admin' : 'Make admin'}
+                                  className={`p-1.5 rounded-lg transition-colors ${
+                                    m.is_admin
+                                      ? 'text-amber-500 hover:bg-amber-50'
+                                      : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                                  }`}
+                                >
+                                  {togglingAdmin === m.user_id
+                                    ? <Loader2 size={14} className="animate-spin" />
+                                    : m.is_admin
+                                    ? <ShieldOff size={14} />
+                                    : <Shield size={14} />}
+                                </button>
+                                {m.account_status === 'approved' && m.membership_status === 'pending' && (
+                                  <button
+                                    onClick={() => handleDelete(m.user_id)}
+                                    disabled={deletingUser === m.user_id}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                                  >
+                                    {deletingUser === m.user_id
+                                      ? <Loader2 size={12} className="animate-spin" />
+                                      : <X size={12} />}
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -488,32 +525,33 @@ export default function AdminPage() {
                         {u.created_at && ` · Registered ${format(new Date(u.created_at), 'dd MMM yyyy')}`}
                       </p>
                     </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => handleApprove(u.id)}
-                        disabled={approvingUser === u.id || rejectingUser === u.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        {approvingUser === u.id
-                          ? <Loader2 size={12} className="animate-spin" />
-                          : <UserCheck size={12} />}
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleReject(u.id)}
-                        disabled={approvingUser === u.id || rejectingUser === u.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        {rejectingUser === u.id
-                          ? <Loader2 size={12} className="animate-spin" />
-                          : <UserX size={12} />}
-                        Reject
-                      </button>
-                    </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleApprove(u.id)}
+                          disabled={approvingUser === u.id || rejectingUser === u.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {approvingUser === u.id
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : <UserCheck size={12} />}
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleReject(u.id)}
+                          disabled={approvingUser === u.id || rejectingUser === u.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {rejectingUser === u.id
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : <UserX size={12} />}
+                          Reject
+                        </button>
+                      </div>
                   </div>
                 ))}
               </div>
             )}
+            {/* deleteToast moved to top-level so it shows across tabs */}
           </div>
         )}
 

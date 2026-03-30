@@ -38,7 +38,16 @@ class User(Base):
 
     memberships = relationship("Membership", back_populates="user", lazy="select")
     payments = relationship("Payment", back_populates="user", lazy="select")
-    profile = relationship("MemberProfile", back_populates="user", uselist=False, lazy="selectin")
+    # Use passive_deletes so SQLAlchemy won't try to NULL out the FK on child
+    # objects (DB has ON DELETE CASCADE) — this avoids errors where child
+    # PK/FK columns are non-nullable / primary keys and cannot be blanked.
+    profile = relationship(
+        "MemberProfile",
+        back_populates="user",
+        uselist=False,
+        lazy="selectin",
+        passive_deletes=True,
+    )
 
 
 class Membership(Base):
@@ -94,7 +103,8 @@ class MemberProfile(Base):
     aadhar_url = Column(Text, nullable=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
-    user = relationship("User", back_populates="profile")
+    # Let DB cascade deletes; avoid ORM nullification attempts on PK/FK
+    user = relationship("User", back_populates="profile", passive_deletes=True)
 
 
 class SiteSettings(Base):

@@ -80,6 +80,7 @@ export const adminApi = {
   getPendingUsers: () => apiClient.get('/admin/users/pending'),
   approveUser: (id) => apiClient.put(`/admin/users/${id}/approve`),
   rejectUser: (id) => apiClient.put(`/admin/users/${id}/reject`),
+  deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────

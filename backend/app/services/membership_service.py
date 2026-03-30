@@ -96,6 +96,7 @@ class MembershipService:
                 "age": user.age,
                 "gender": user.gender,
                 "is_admin": user.is_admin,
+                "account_status": user.account_status,
                 "t_shirt_size": user.t_shirt_size,
                 "membership_status": membership.status,
                 "membership_year": membership.year,

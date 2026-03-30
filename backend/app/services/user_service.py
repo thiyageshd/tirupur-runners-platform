@@ -85,6 +85,9 @@ class UserService:
         profile = MemberProfile(user_id=user.id)
         self.db.add(profile)
         await self.db.flush()
+        # Attach profile to user to avoid triggering a lazy load when serializing
+        # (accessing `user.profile` would issue a sync DB load in async context)
+        user.profile = profile
         return user
 
     async def login_password(self, identifier: str, password: str) -> str:

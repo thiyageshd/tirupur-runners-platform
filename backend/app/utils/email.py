@@ -1,5 +1,6 @@
 import smtplib
 import logging
+import asyncio
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -29,25 +30,22 @@ def _send(to_email: str, subject: str, html: str):
 
 
 async def send_otp_email(to_email: str, otp: str):
-    _send(
-        to_email,
-        "Your Tirupur Runners Club OTP",
-        f"""
+    subject = "Your Tirupur Runners Club OTP"
+    html = f"""
         <div style="font-family:sans-serif;max-width:480px;margin:auto">
           <h2 style="color:#16a34a">Tirupur Runners Club</h2>
           <p>Your one-time password is:</p>
           <h1 style="letter-spacing:8px;color:#111">{otp}</h1>
           <p style="color:#666;font-size:13px">Valid for 5 minutes. Do not share this OTP.</p>
         </div>
-        """,
-    )
+        """
+    await asyncio.to_thread(_send, to_email, subject, html)
+    logger.info(f"Approval/OTP email attempted to {to_email} | {subject}")
 
 
 async def send_membership_confirmation(to_email: str, name: str, end_date: str):
-    _send(
-        to_email,
-        "Membership Confirmed — Tirupur Runners Club",
-        f"""
+    subject = "Membership Confirmed — Tirupur Runners Club"
+    html = f"""
         <div style="font-family:sans-serif;max-width:480px;margin:auto">
           <h2 style="color:#16a34a">Welcome, {name}!</h2>
           <p>Your Tirupur Runners Club membership is now <strong>active</strong>.</p>
@@ -56,15 +54,14 @@ async def send_membership_confirmation(to_email: str, name: str, end_date: str):
           <hr style="border:none;border-top:1px solid #eee">
           <p style="color:#999;font-size:12px">tirupurrunners.com</p>
         </div>
-        """,
-    )
+        """
+    await asyncio.to_thread(_send, to_email, subject, html)
+    logger.info(f"Membership confirmation email attempted to {to_email} | {subject}")
 
 
 async def send_approval_email(to_email: str, name: str, login_url: str):
-    _send(
-        to_email,
-        "Your Registration is Approved — Tirupur Runners Club",
-        f"""
+    subject = "Your Registration is Approved — Tirupur Runners Club"
+    html = f"""
         <div style="font-family:sans-serif;max-width:480px;margin:auto">
           <h2 style="color:#16a34a">Congratulations, {name}!</h2>
           <p>Your registration with <strong>Tirupur Runners Club</strong> has been <strong>approved</strong>.</p>
@@ -78,15 +75,14 @@ async def send_approval_email(to_email: str, name: str, login_url: str):
           <hr style="border:none;border-top:1px solid #eee">
           <p style="color:#999;font-size:12px">Questions? Email tirupurrunnersmarathon@gmail.com or call +91 94882 52599</p>
         </div>
-        """,
-    )
+        """
+    await asyncio.to_thread(_send, to_email, subject, html)
+    logger.info(f"Approval email attempted to {to_email} | {subject}")
 
 
 async def send_rejection_email(to_email: str, name: str):
-    _send(
-        to_email,
-        "Regarding Your Registration — Tirupur Runners Club",
-        f"""
+    subject = "Regarding Your Registration — Tirupur Runners Club"
+    html = f"""
         <div style="font-family:sans-serif;max-width:480px;margin:auto">
           <h2 style="color:#374151">Hi {name},</h2>
           <p>Thank you for your interest in joining <strong>Tirupur Runners Club</strong>.</p>
@@ -99,5 +95,6 @@ async def send_rejection_email(to_email: str, name: str):
           <hr style="border:none;border-top:1px solid #eee">
           <p style="color:#999;font-size:12px">Tirupur Runners Club</p>
         </div>
-        """,
-    )
+        """
+    await asyncio.to_thread(_send, to_email, subject, html)
+    logger.info(f"Rejection email attempted to {to_email} | {subject}")

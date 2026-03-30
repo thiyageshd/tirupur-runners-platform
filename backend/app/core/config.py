@@ -29,8 +29,8 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = "admin@tirupurrunners.com"
 
     # Email (Gmail SMTP)
-    GMAIL_USER: str = ""        # e.g. tirupurrunnersmarathon@gmail.com
-    GMAIL_APP_PASSWORD: str = "ylzz pldr dpte cljc"  # 16-char Google App Password
+    GMAIL_USER: str = "tirupurrunners@gmail.com"        # e.g. tirupurrunnersmarathon@gmail.com
+    GMAIL_APP_PASSWORD: str = "ylzzpldrdptecljc"  # 16-char Google App Password
     FROM_EMAIL: str = "noreply@tirupurrunners.com"
 
     # CORS

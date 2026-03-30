@@ -15,8 +15,12 @@ from app.models.models import User, Membership, Payment
 from app.core.security import get_current_admin
 from app.utils.email import send_approval_email, send_rejection_email
 from app.core.config import settings
+from fastapi import status
+import logging
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/members", response_model=list[MemberListItem])
@@ -77,7 +81,11 @@ async def get_stats(
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    total_members = await db.scalar(select(func.count()).select_from(User))
+    # Count only approved users as "total members" — pending/rejected should not
+    # increase the membership counts until approved.
+    total_members = await db.scalar(
+        select(func.count()).select_from(User).where(User.account_status == "approved")
+    )
 
     active_count = await db.scalar(
         select(func.count(func.distinct(Membership.user_id))).where(Membership.status == "active")
@@ -300,6 +308,19 @@ async def approve_user(
         raise HTTPException(status_code=400, detail="User is already approved")
     user.account_status = "approved"
     await db.flush()
+    # Auto-create a pending membership for the upcoming membership year.
+    # Use the current calendar year as the membership start year (Apr 1 -> Mar 31).
+    try:
+        year = date.today().year
+        membership_svc = MembershipService(db)
+        await membership_svc.create_pending_membership(user.id, year)
+        logger.info(f"Auto-created pending membership for user {user.email} year={year}")
+    except HTTPException as exc:
+        # If an active membership already exists, ignore the conflict and proceed.
+        if getattr(exc, "status_code", None) == 409:
+            logger.info(f"Skipping pending membership creation for {user.email}: {exc.detail}")
+        else:
+            raise
     login_url = f"{settings.FRONTEND_URL}/members/login"
     background_tasks.add_task(send_approval_email, user.email, user.full_name, login_url)
     return user
@@ -322,3 +343,44 @@ async def reject_user(
     await db.flush()
     background_tasks.add_task(send_rejection_email, user.email, user.full_name)
     return user
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: uuid_module.UUID,
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    # Only allow deletion of pending registrations via the admin panel
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Allow deletion for users that are still pending approval or already rejected
+    if user.account_status in ("pending_approval", "rejected"):
+        from sqlalchemy import delete as sq_delete
+
+        await db.execute(sq_delete(User).where(User.id == user.id))
+        await db.flush()
+        return {"message": f"Deleted the user {user.full_name} (status={user.account_status})"}
+
+    # For approved users, require a pending membership to allow deletion
+    if user.account_status == "approved":
+        membership_result = await db.execute(
+            select(Membership).where(Membership.user_id == user.id, Membership.status == "pending")
+        )
+        membership = membership_result.scalar_one_or_none()
+        if not membership:
+            raise HTTPException(status_code=400, detail="Can only delete approved users with pending membership")
+
+        # Delete the user via a direct SQL DELETE so the ORM does not attempt to
+        # null-out child PK/FK columns in Python. The DB's ON DELETE CASCADE will
+        # remove dependent rows (MemberProfile, Memberships, Payments).
+        from sqlalchemy import delete as sq_delete
+
+        await db.execute(sq_delete(User).where(User.id == user.id))
+        await db.flush()
+        return {"message": f"Deleted the user {user.full_name} with pending membership for {membership.year}"}
+
+    # Any other statuses are not deletable
+    raise HTTPException(status_code=400, detail="Cannot delete user with current status")

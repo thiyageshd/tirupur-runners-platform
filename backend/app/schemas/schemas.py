@@ -163,6 +163,8 @@ class MemberListItem(BaseModel):
     gender: str
     is_admin: bool
     t_shirt_size: Optional[str] = None
+    # Account status: 'approved' | 'pending_approval' | 'rejected'
+    account_status: str
     membership_status: str
     membership_year: int
     start_date: Optional[date]
