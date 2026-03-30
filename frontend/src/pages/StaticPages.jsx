@@ -69,7 +69,7 @@ export function AboutPage() {
 }
 
 const DEFAULT_CONTACT = {
-  contact_email: 'tirupurrunnersmarathon@gmail.com',
+  contact_email: 'tirupurrunners@gmail.com',
   contact_phone: '+91 94882 52599',
   run_location: 'Tirupur Collectorate',
   run_day_time: 'Every Sunday, 5:30 AM',

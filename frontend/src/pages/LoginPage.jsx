@@ -80,10 +80,11 @@ export default function LoginPage() {
               <button
                 key={t}
                 type="button"
+                disabled={t === 'otp'}
                 onClick={() => { setTab(t); setError(''); setOtpSent(false) }}
                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                   tab === t ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                }`}
+                } ${t === 'otp' ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 {t === 'password' ? 'Password' : 'OTP Login'}
               </button>

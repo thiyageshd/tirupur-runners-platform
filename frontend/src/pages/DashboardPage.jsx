@@ -197,7 +197,7 @@ export default function DashboardPage() {
   <tr><td>Amount</td><td class="amount">&#8377;${(payment.amount_paise / 100).toLocaleString('en-IN')}</td></tr>
 </table>
 <button class="print-btn" onclick="window.print()">Print Receipt</button>
-<p class="footer">Tirupur Runners Club · tirupurrunnersmarathon@gmail.com · +91 94882 52599</p>
+<p class="footer">Tirupur Runners Club · tirupurrunners@gmail.com · +91 94882 52599</p>
 </body></html>`
     const w = window.open('', '_blank')
     w.document.write(html)
@@ -299,7 +299,7 @@ export default function DashboardPage() {
               <p className="text-sm text-amber-700 mt-0.5">
                 Your account is being reviewed by the admin. You will receive an email once approved and can then complete your membership payment.
               </p>
-              <p className="text-xs text-amber-600 mt-1">Contact: tirupurrunnersmarathon@gmail.com · +91 94882 52599</p>
+              <p className="text-xs text-amber-600 mt-1">Contact: tirupurrunners@gmail.com · +91 94882 52599</p>
             </div>
           </div>
         )}
@@ -311,7 +311,7 @@ export default function DashboardPage() {
               <p className="text-sm text-red-700 mt-0.5">
                 Your registration was not approved. Please contact the club for assistance.
               </p>
-              <p className="text-xs text-red-600 mt-1">Contact: tirupurrunnersmarathon@gmail.com · +91 94882 52599</p>
+              <p className="text-xs text-red-600 mt-1">Contact: tirupurrunners@gmail.com · +91 94882 52599</p>
             </div>
           </div>
         )}

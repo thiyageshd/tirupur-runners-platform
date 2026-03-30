@@ -73,7 +73,7 @@ async def send_approval_email(to_email: str, name: str, login_url: str):
           </p>
           <p style="color:#666">Join us every <strong>Sunday at 5:30 AM</strong> at VOC Park for the weekly run!</p>
           <hr style="border:none;border-top:1px solid #eee">
-          <p style="color:#999;font-size:12px">Questions? Email tirupurrunnersmarathon@gmail.com or call +91 94882 52599</p>
+          <p style="color:#999;font-size:12px">Questions? Email tirupurrunners@gmail.com or call +91 94882 52599</p>
         </div>
         """
     await asyncio.to_thread(_send, to_email, subject, html)
@@ -89,7 +89,7 @@ async def send_rejection_email(to_email: str, name: str):
           <p>After review, we are unable to approve your registration at this time.</p>
           <p>If you believe this is a mistake or have questions, please reach out to us directly:</p>
           <ul style="color:#666">
-            <li>Email: tirupurrunnersmarathon@gmail.com</li>
+            <li>Email: tirupurrunners@gmail.com</li>
             <li>Phone: +91 94882 52599</li>
           </ul>
           <hr style="border:none;border-top:1px solid #eee">

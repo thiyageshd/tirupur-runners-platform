@@ -29,12 +29,15 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = "admin@tirupurrunners.com"
 
     # Email (Gmail SMTP)
-    GMAIL_USER: str = "tirupurrunners@gmail.com"        # e.g. tirupurrunnersmarathon@gmail.com
+    GMAIL_USER: str = "tirupurrunners@gmail.com"        # e.g. tirupurrunners@gmail.com
     GMAIL_APP_PASSWORD: str = "ylzzpldrdptecljc"  # 16-char Google App Password
     FROM_EMAIL: str = "noreply@tirupurrunners.com"
 
-    # CORS
-    FRONTEND_URL: str = "https://tirupurrunners.com"
+    # CORS + Email links (override per environment)
+    # localhost:  http://localhost:5173
+    # dev:        https://tirupur-runners-web-dev.onrender.com
+    # prod:       https://tirupurrunners.com
+    FRONTEND_URL: str = "http://localhost:5173"
 
     class Config:
         # Allow selecting env file via ENV_FILE env var:

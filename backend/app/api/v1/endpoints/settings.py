@@ -10,7 +10,7 @@ from app.core.security import get_current_admin
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 DEFAULT_SETTINGS = {
-    "contact_email": "tirupurrunnersmarathon@gmail.com",
+    "contact_email": "tirupurrunners@gmail.com",
     "contact_phone": "+91 94882 52599",
     "run_location": "Tirupur Collectorate",
     "run_day_time": "Every Sunday, 5:30 AM",

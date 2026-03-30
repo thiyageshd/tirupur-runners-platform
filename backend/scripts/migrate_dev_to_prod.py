@@ -214,7 +214,7 @@ async def main():
         print(f"       RAZORPAY_KEY_ID       (live key: rzp_live_...)")
         print(f"       RAZORPAY_KEY_SECRET")
         print(f"       RAZORPAY_WEBHOOK_SECRET")
-        print(f"       GMAIL_USER            (e.g. tirupurrunnersmarathon@gmail.com)")
+        print(f"       GMAIL_USER            (e.g. tirupurrunners@gmail.com)")
         print(f"       GMAIL_APP_PASSWORD    (16-char Google App Password)")
         print(f"  2. Verify: https://tirupur-runners-api.onrender.com/health\n")
     else:

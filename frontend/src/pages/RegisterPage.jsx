@@ -273,9 +273,9 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField label="Blood Group" error={errors.blood_group?.message}>
-                    <select className="input-field" {...register('blood_group')}>
-                      <option value="">Select (optional)</option>
+                  <FormField label="Blood Group" required error={errors.blood_group?.message}>
+                    <select className="input-field" {...register('blood_group', { required: 'Blood group is required' })}>
+                      <option value="">Select</option>
                       {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
                         <option key={bg} value={bg}>{bg}</option>
                       ))}
@@ -301,18 +301,18 @@ export default function RegisterPage() {
                 </FormField>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField label="Emergency Contact" error={errors.emergency_contact?.message}>
+                  <FormField label="Emergency Contact" required error={errors.emergency_contact?.message}>
                     <input
                       className="input-field"
                       placeholder="Contact name"
-                      {...register('emergency_contact')}
+                      {...register('emergency_contact', { required: 'Emergency contact is required' })}
                     />
                   </FormField>
-                  <FormField label="Emergency Phone" error={errors.emergency_phone?.message}>
+                  <FormField label="Emergency Phone" required error={errors.emergency_phone?.message}>
                     <input
                       className="input-field"
                       placeholder="Phone number"
-                      {...register('emergency_phone')}
+                      {...register('emergency_phone', { required: 'Emergency phone is required', pattern: { value: /^[0-9+\-\s]{7,15}$/, message: 'Invalid phone number' } })}
                     />
                   </FormField>
                 </div>
