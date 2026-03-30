@@ -26,6 +26,9 @@ class User(Base):
     address = Column(String(500), nullable=True)
     emergency_contact = Column(String(200), nullable=True)
     emergency_phone = Column(String(20), nullable=True)
+    emergency_contact_2 = Column(String(200), nullable=True)
+    emergency_phone_2 = Column(String(20), nullable=True)
+    account_status = Column(String(20), nullable=False, default="approved")
     t_shirt_size = Column(String(10), nullable=True)
     hashed_password = Column(String(255), nullable=True)
     otp_secret = Column(String(64), nullable=True)
@@ -88,6 +91,7 @@ class MemberProfile(Base):
     interests = Column(String(500), nullable=True)
     bio = Column(String(1000), nullable=True)
     strava_link = Column(String(200), nullable=True)
+    aadhar_url = Column(Text, nullable=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     user = relationship("User", back_populates="profile")

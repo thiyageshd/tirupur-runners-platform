@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { settingsApi } from '../api'
+import logo from '../resources/Tirupur_Runners_Logo.jpg'
 
 // AboutPage.jsx
 export function AboutPage() {
@@ -10,10 +11,9 @@ export function AboutPage() {
         {/* Logo from Tirupur Runners */}
         <div className="flex items-center gap-4 mb-8">
           <img
-            src="https://racemart.in/storage/partners/partner-1748525507271.jpg"
+            src={logo}
             alt="Tirupur Runners Logo"
             className="h-16 w-16 object-contain rounded-xl"
-            onError={(e) => { e.target.style.display = 'none' }}
           />
           <div>
             <h1 className="font-display font-bold text-4xl text-gray-900">About Us</h1>

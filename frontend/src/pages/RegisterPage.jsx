@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate, Link } from 'react-router-dom'
-import { Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Eye, EyeOff, Clock, Loader2 } from 'lucide-react'
 import FormField from '../components/ui/FormField'
-import { authApi, paymentApi } from '../api'
+import { authApi } from '../api'
 import { useAuthStore } from '../store/authStore'
 
-const STEPS = ['Account', 'Personal Info', 'Payment']
+const STEPS = ['Account', 'Personal Info']
 
 export default function RegisterPage() {
   const [step, setStep] = useState(0)
@@ -15,19 +15,17 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const { setToken, fetchMe } = useAuthStore()
-  const navigate = useNavigate()
 
   const {
     register,
     handleSubmit,
-    getValues,
     trigger,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
   const STEP_FIELDS = [
     ['full_name', 'email', 'password'],
-    ['phone', 'age', 'gender', 'address', 'emergency_contact', 'emergency_phone', 't_shirt_size'],
+    ['phone', 'age', 'gender', 't_shirt_size'],
   ]
 
   const nextStep = async () => {
@@ -35,27 +33,16 @@ export default function RegisterPage() {
     if (valid) setStep((s) => s + 1)
   }
 
-  const loadRazorpay = () =>
-    new Promise((resolve) => {
-      if (window.Razorpay) return resolve(true)
-      const script = document.createElement('script')
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-      script.onload = () => resolve(true)
-      script.onerror = () => resolve(false)
-      document.body.appendChild(script)
-    })
-
   const onSubmit = async (data) => {
     setLoading(true)
     setError('')
     try {
-      // 1. Register user (t_shirt_size included; blood_group + strava_link ignored by register endpoint)
+      // 1. Register user
       await authApi.register(data)
 
       // 2. Login to get token
       const loginRes = await authApi.login({ identifier: data.email, password: data.password })
-      const token = loginRes.data.access_token
-      setToken(token)
+      setToken(loginRes.data.access_token)
       await fetchMe()
 
       // 3. Save optional profile extras
@@ -66,52 +53,14 @@ export default function RegisterPage() {
             strava_link: data.strava_link || undefined,
           })
         } catch {
-          // Non-critical — continue to payment
+          // Non-critical
         }
       }
 
-      // 4. Create Razorpay order
-      const orderRes = await paymentApi.createOrder(new Date().getFullYear())
-      const order = orderRes.data
-
-      // 5. Load Razorpay checkout
-      const loaded = await loadRazorpay()
-      if (!loaded) throw new Error('Failed to load Razorpay')
-
-      const options = {
-        key: order.key_id,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'Tirupur Runners Club',
-        description: `Annual Membership ${new Date().getFullYear()}`,
-        order_id: order.order_id,
-        handler: async (response) => {
-          try {
-            await paymentApi.verifyPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            })
-            setSuccess(true)
-            setTimeout(() => navigate('/members/dashboard'), 2500)
-          } catch {
-            setError('Payment verification failed. Contact support.')
-          }
-        },
-        prefill: {
-          name: data.full_name,
-          email: data.email,
-          contact: data.phone,
-        },
-        theme: { color: '#16a34a' },
-        modal: {
-          ondismiss: () => setLoading(false),
-        },
-      }
-      const rzp = new window.Razorpay(options)
-      rzp.open()
+      setSuccess(true)
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Registration failed')
+    } finally {
       setLoading(false)
     }
   }
@@ -120,9 +69,17 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen flex items-center justify-center pt-16 px-4">
         <div className="card max-w-md w-full text-center py-12">
-          <CheckCircle size={56} className="text-brand-500 mx-auto mb-4" />
-          <h2 className="font-display font-bold text-2xl text-gray-900 mb-2">Welcome to the club!</h2>
-          <p className="text-gray-500">Your membership is active. Redirecting to dashboard…</p>
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Clock size={32} className="text-amber-600" />
+          </div>
+          <h2 className="font-display font-bold text-2xl text-gray-900 mb-3">Registration Submitted!</h2>
+          <p className="text-gray-600 mb-2">Your registration is <strong>pending admin approval</strong>.</p>
+          <p className="text-gray-500 text-sm mb-6">
+            You will receive an email once your registration is reviewed. After approval, you can log in and complete your membership payment.
+          </p>
+          <Link to="/members/login" className="btn-primary inline-block">
+            Go to Login
+          </Link>
         </div>
       </div>
     )
@@ -134,7 +91,7 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="font-display font-bold text-3xl text-gray-900 mb-2">Join Tirupur Runners</h1>
-          <p className="text-gray-500 text-sm">New member annual membership — ₹2,000</p>
+          <p className="text-gray-500 text-sm">Register free — membership payment after admin approval</p>
         </div>
 
         {/* Step indicator */}
@@ -216,7 +173,7 @@ export default function RegisterPage() {
 
                 <p className="text-center text-sm text-gray-500">
                   Already a member?{' '}
-                  <Link to="/login" className="text-brand-600 font-medium hover:underline">Login</Link>
+                  <Link to="/members/login" className="text-brand-600 font-medium hover:underline">Login</Link>
                 </p>
               </div>
             )}
@@ -324,43 +281,21 @@ export default function RegisterPage() {
                   </FormField>
                 </div>
 
-                <div className="flex gap-3 mt-2">
-                  <button
-                    type="button"
-                    className="btn-outline flex-1"
-                    onClick={() => setStep(0)}
-                  >
-                    ← Back
-                  </button>
-                  <button type="button" className="btn-primary flex-1" onClick={nextStep}>
-                    Continue →
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 2 — Payment */}
-            {step === 2 && (
-              <div className="flex flex-col gap-5">
-                <h2 className="font-semibold text-gray-900 text-lg mb-1">Complete membership</h2>
-
-                {/* Summary */}
-                <div className="bg-brand-50 border border-brand-100 rounded-xl p-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-medium text-gray-700">Annual Membership {new Date().getFullYear()} — New Member</span>
-                    <span className="font-bold text-brand-700">₹2,000</span>
-                  </div>
-                  <ul className="text-xs text-gray-500 space-y-1">
-                    <li>✓ Access to all club runs</li>
-                    <li>✓ Marathon event discounts</li>
-                    <li>✓ Training support & coaching</li>
-                    <li>✓ Valid for 12 months</li>
-                  </ul>
-                </div>
-
-                <div className="text-xs text-gray-400 flex items-center gap-2">
-                  <span>🔒</span>
-                  <span>Payments powered by Razorpay — UPI, cards, netbanking accepted</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Emergency Contact 2" error={errors.emergency_contact_2?.message}>
+                    <input
+                      className="input-field"
+                      placeholder="Contact name (optional)"
+                      {...register('emergency_contact_2')}
+                    />
+                  </FormField>
+                  <FormField label="Emergency Phone 2" error={errors.emergency_phone_2?.message}>
+                    <input
+                      className="input-field"
+                      placeholder="Phone number (optional)"
+                      {...register('emergency_phone_2')}
+                    />
+                  </FormField>
                 </div>
 
                 {error && (
@@ -369,11 +304,11 @@ export default function RegisterPage() {
                   </div>
                 )}
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 mt-2">
                   <button
                     type="button"
                     className="btn-outline flex-1"
-                    onClick={() => setStep(1)}
+                    onClick={() => setStep(0)}
                     disabled={loading}
                   >
                     ← Back
@@ -384,9 +319,9 @@ export default function RegisterPage() {
                     disabled={loading}
                   >
                     {loading ? (
-                      <><Loader2 size={16} className="animate-spin" /> Processing…</>
+                      <><Loader2 size={16} className="animate-spin" /> Submitting…</>
                     ) : (
-                      'Pay ₹2,000 & Join'
+                      'Complete Registration'
                     )}
                   </button>
                 </div>

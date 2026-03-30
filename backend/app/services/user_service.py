@@ -72,9 +72,12 @@ class UserService:
             address=data.address,
             emergency_contact=data.emergency_contact,
             emergency_phone=data.emergency_phone,
+            emergency_contact_2=data.emergency_contact_2,
+            emergency_phone_2=data.emergency_phone_2,
             t_shirt_size=data.t_shirt_size,
             hashed_password=hash_password(data.password) if data.password else None,
             otp_secret=pyotp.random_base32(),
+            account_status="pending_approval",
         )
         self.db.add(user)
         await self.db.flush()

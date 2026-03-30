@@ -1,63 +1,103 @@
+import smtplib
 import logging
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-async def send_otp_email(to_email: str, otp: str):
-    """Send OTP via SendGrid. Falls back to console log in dev mode."""
-    if not settings.SENDGRID_API_KEY:
-        logger.info(f"[DEV] OTP for {to_email}: {otp}")
+def _send(to_email: str, subject: str, html: str):
+    """Send via Gmail SMTP. Falls back to console log when credentials not set."""
+    if not settings.GMAIL_USER or not settings.GMAIL_APP_PASSWORD:
+        logger.info(f"[DEV] Email to {to_email} | {subject}")
         return
-
     try:
-        import sendgrid
-        from sendgrid.helpers.mail import Mail
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"Tirupur Runners Club <{settings.GMAIL_USER}>"
+        msg["To"] = to_email
+        msg["Reply-To"] = settings.GMAIL_USER
+        msg.attach(MIMEText(html, "html"))
 
-        sg = sendgrid.SendGridAPIClient(api_key=settings.SENDGRID_API_KEY)
-        message = Mail(
-            from_email=settings.FROM_EMAIL,
-            to_emails=to_email,
-            subject="Your Tirupur Runners Club OTP",
-            html_content=f"""
-            <div style="font-family:sans-serif;max-width:480px;margin:auto">
-              <h2 style="color:#16a34a">Tirupur Runners Club</h2>
-              <p>Your one-time password is:</p>
-              <h1 style="letter-spacing:8px;color:#111">{otp}</h1>
-              <p style="color:#666;font-size:13px">Valid for 5 minutes. Do not share this OTP.</p>
-            </div>
-            """,
-        )
-        sg.send(message)
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(settings.GMAIL_USER, settings.GMAIL_APP_PASSWORD)
+            server.sendmail(settings.GMAIL_USER, to_email, msg.as_string())
     except Exception as e:
-        logger.error(f"Failed to send OTP email to {to_email}: {e}")
+        logger.error(f"Failed to send email to {to_email}: {e}")
+
+
+async def send_otp_email(to_email: str, otp: str):
+    _send(
+        to_email,
+        "Your Tirupur Runners Club OTP",
+        f"""
+        <div style="font-family:sans-serif;max-width:480px;margin:auto">
+          <h2 style="color:#16a34a">Tirupur Runners Club</h2>
+          <p>Your one-time password is:</p>
+          <h1 style="letter-spacing:8px;color:#111">{otp}</h1>
+          <p style="color:#666;font-size:13px">Valid for 5 minutes. Do not share this OTP.</p>
+        </div>
+        """,
+    )
 
 
 async def send_membership_confirmation(to_email: str, name: str, end_date: str):
-    if not settings.SENDGRID_API_KEY:
-        logger.info(f"[DEV] Membership confirmed for {to_email} until {end_date}")
-        return
+    _send(
+        to_email,
+        "Membership Confirmed — Tirupur Runners Club",
+        f"""
+        <div style="font-family:sans-serif;max-width:480px;margin:auto">
+          <h2 style="color:#16a34a">Welcome, {name}!</h2>
+          <p>Your Tirupur Runners Club membership is now <strong>active</strong>.</p>
+          <p><strong>Valid until:</strong> {end_date}</p>
+          <p>See you at the next run!</p>
+          <hr style="border:none;border-top:1px solid #eee">
+          <p style="color:#999;font-size:12px">tirupurrunners.com</p>
+        </div>
+        """,
+    )
 
-    try:
-        import sendgrid
-        from sendgrid.helpers.mail import Mail
 
-        sg = sendgrid.SendGridAPIClient(api_key=settings.SENDGRID_API_KEY)
-        message = Mail(
-            from_email=settings.FROM_EMAIL,
-            to_emails=to_email,
-            subject="Membership Confirmed — Tirupur Runners Club",
-            html_content=f"""
-            <div style="font-family:sans-serif;max-width:480px;margin:auto">
-              <h2 style="color:#16a34a">Welcome, {name}!</h2>
-              <p>Your Tirupur Runners Club membership is now <strong>active</strong>.</p>
-              <p><strong>Valid until:</strong> {end_date}</p>
-              <p>See you at the next run! 🏃</p>
-              <hr style="border:none;border-top:1px solid #eee">
-              <p style="color:#999;font-size:12px">tirupurrunners.com</p>
-            </div>
-            """,
-        )
-        sg.send(message)
-    except Exception as e:
-        logger.error(f"Failed to send confirmation email to {to_email}: {e}")
+async def send_approval_email(to_email: str, name: str, login_url: str):
+    _send(
+        to_email,
+        "Your Registration is Approved — Tirupur Runners Club",
+        f"""
+        <div style="font-family:sans-serif;max-width:480px;margin:auto">
+          <h2 style="color:#16a34a">Congratulations, {name}!</h2>
+          <p>Your registration with <strong>Tirupur Runners Club</strong> has been <strong>approved</strong>.</p>
+          <p>You can now log in and complete your annual membership payment of <strong>&#8377;2,000</strong>.</p>
+          <p style="margin:24px 0">
+            <a href="{login_url}" style="background:#16a34a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">
+              Login &amp; Pay Now
+            </a>
+          </p>
+          <p style="color:#666">Join us every <strong>Sunday at 5:30 AM</strong> at VOC Park for the weekly run!</p>
+          <hr style="border:none;border-top:1px solid #eee">
+          <p style="color:#999;font-size:12px">Questions? Email tirupurrunnersmarathon@gmail.com or call +91 94882 52599</p>
+        </div>
+        """,
+    )
+
+
+async def send_rejection_email(to_email: str, name: str):
+    _send(
+        to_email,
+        "Regarding Your Registration — Tirupur Runners Club",
+        f"""
+        <div style="font-family:sans-serif;max-width:480px;margin:auto">
+          <h2 style="color:#374151">Hi {name},</h2>
+          <p>Thank you for your interest in joining <strong>Tirupur Runners Club</strong>.</p>
+          <p>After review, we are unable to approve your registration at this time.</p>
+          <p>If you believe this is a mistake or have questions, please reach out to us directly:</p>
+          <ul style="color:#666">
+            <li>Email: tirupurrunnersmarathon@gmail.com</li>
+            <li>Phone: +91 94882 52599</li>
+          </ul>
+          <hr style="border:none;border-top:1px solid #eee">
+          <p style="color:#999;font-size:12px">Tirupur Runners Club</p>
+        </div>
+        """,
+    )

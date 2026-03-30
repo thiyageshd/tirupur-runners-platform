@@ -28,8 +28,9 @@ class Settings(BaseSettings):
     # Admin
     ADMIN_EMAIL: str = "admin@tirupurrunners.com"
 
-    # Email (SendGrid)
-    SENDGRID_API_KEY: str = ""
+    # Email (Gmail SMTP)
+    GMAIL_USER: str = ""        # e.g. tirupurrunnersmarathon@gmail.com
+    GMAIL_APP_PASSWORD: str = ""  # 16-char Google App Password
     FROM_EMAIL: str = "noreply@tirupurrunners.com"
 
     # CORS

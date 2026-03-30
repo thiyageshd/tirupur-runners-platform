@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Download, Users, TrendingUp, XCircle, Clock, Loader2,
   Crown, Shield, ShieldOff, Upload, MessageSquare, Settings, CheckCircle2,
-  Pencil, Check, X,
+  Pencil, Check, X, UserCheck, UserX,
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { adminApi, settingsApi } from '../api'
@@ -15,7 +15,7 @@ const STATUS_BADGE = {
   pending: 'bg-yellow-100 text-yellow-700',
 }
 
-const TABS = ['Members', 'Offline Payments', 'SMS', 'Settings']
+const TABS = ['Members', 'Approvals', 'Offline Payments', 'SMS', 'Settings']
 
 const SMS_TEMPLATES = {
   'Renewal Reminder': 'Hi {name}, your Tirupur Runners membership expires soon. Renew at https://tirupurrunners.in',
@@ -41,6 +41,12 @@ export default function AdminPage() {
   const [editingTshirt, setEditingTshirt] = useState(null)
   const [tshirtEditValue, setTshirtEditValue] = useState('')
   const [savingTshirt, setSavingTshirt] = useState(null)
+
+  // Approvals tab
+  const [pendingUsers, setPendingUsers] = useState([])
+  const [pendingLoading, setPendingLoading] = useState(false)
+  const [approvingUser, setApprovingUser] = useState(null)
+  const [rejectingUser, setRejectingUser] = useState(null)
 
   // Offline payments tab
   const [uploadFile, setUploadFile] = useState(null)
@@ -69,6 +75,47 @@ export default function AdminPage() {
   useEffect(() => {
     if (activeTab === 'Members') loadData()
   }, [filter])
+
+  useEffect(() => {
+    if (activeTab === 'Approvals') loadPendingUsers()
+  }, [activeTab])
+
+  const loadPendingUsers = async () => {
+    setPendingLoading(true)
+    try {
+      const res = await adminApi.getPendingUsers()
+      setPendingUsers(res.data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setPendingLoading(false)
+    }
+  }
+
+  const handleApprove = async (userId) => {
+    setApprovingUser(userId)
+    try {
+      await adminApi.approveUser(userId)
+      setPendingUsers((prev) => prev.filter((u) => u.id !== userId))
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to approve')
+    } finally {
+      setApprovingUser(null)
+    }
+  }
+
+  const handleReject = async (userId) => {
+    if (!confirm('Reject this registration?')) return
+    setRejectingUser(userId)
+    try {
+      await adminApi.rejectUser(userId)
+      setPendingUsers((prev) => prev.filter((u) => u.id !== userId))
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to reject')
+    } finally {
+      setRejectingUser(null)
+    }
+  }
 
   const loadData = async () => {
     setLoading(true)
@@ -404,6 +451,70 @@ export default function AdminPage() {
               )}
             </div>
           </>
+        )}
+
+        {/* ── Approvals Tab ── */}
+        {activeTab === 'Approvals' && (
+          <div className="card">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+                <UserCheck size={18} className="text-amber-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Pending Registrations</h2>
+                <p className="text-xs text-gray-500">Approve or reject new member registrations</p>
+              </div>
+            </div>
+
+            {pendingLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 size={28} className="animate-spin text-brand-600" />
+              </div>
+            ) : pendingUsers.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <UserCheck size={32} className="mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No pending registrations</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingUsers.map((u) => (
+                  <div key={u.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm">{u.full_name}</p>
+                      <p className="text-xs text-gray-500 truncate">{u.email} · {u.phone}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Age {u.age} · {u.gender}
+                        {u.t_shirt_size && ` · ${u.t_shirt_size}`}
+                        {u.created_at && ` · Registered ${format(new Date(u.created_at), 'dd MMM yyyy')}`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleApprove(u.id)}
+                        disabled={approvingUser === u.id || rejectingUser === u.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {approvingUser === u.id
+                          ? <Loader2 size={12} className="animate-spin" />
+                          : <UserCheck size={12} />}
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleReject(u.id)}
+                        disabled={approvingUser === u.id || rejectingUser === u.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {rejectingUser === u.id
+                          ? <Loader2 size={12} className="animate-spin" />
+                          : <UserX size={12} />}
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ── Offline Payments Tab ── */}

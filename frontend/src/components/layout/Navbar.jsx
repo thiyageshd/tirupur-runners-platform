@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, X, User, LogOut } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
+import logo from '../../resources/Tirupur_Runners_Logo.jpg'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -32,13 +33,9 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <img
-            src="https://racemart.in/storage/partners/partner-1748525507271.jpg"
+            src={logo}
             alt="Tirupur Runners"
             className="h-9 w-9 object-contain rounded-xl"
-            onError={(e) => {
-              e.target.style.display = 'none'
-              e.target.nextSibling.style.display = 'flex'
-            }}
           />
           <div className="w-9 h-9 bg-brand-600 rounded-xl items-center justify-center hidden">
             <span className="text-white font-display font-bold text-sm">TR</span>

@@ -8,9 +8,10 @@ from app.schemas.schemas import (
     OTPVerifyRequest, TokenResponse, UserResponse, UpdateProfileRequest,
     MemberProfileResponse, MemberProfileUpdate,
     ForgotPasswordRequest, ResetPasswordRequest, PhotoUploadRequest,
+    ChangePasswordRequest, AadharUploadRequest,
 )
 from app.services.user_service import UserService
-from app.core.security import get_current_user, hash_password
+from app.core.security import get_current_user, hash_password, verify_password
 from app.utils.email import send_otp_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -102,6 +103,39 @@ async def upload_photo(
     svc = UserService(db)
     profile = await svc.get_or_create_profile(current_user.id)
     profile.photo_url = data.photo_data
+    await db.flush()
+    return profile
+
+
+@router.post("/change-password")
+async def change_password(
+    data: ChangePasswordRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not current_user.hashed_password:
+        raise HTTPException(status_code=400, detail="No password set on this account. Use OTP login.")
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    current_user.hashed_password = hash_password(data.new_password)
+    await db.flush()
+    return {"message": "Password changed successfully"}
+
+
+@router.put("/me/aadhar", response_model=MemberProfileResponse)
+async def upload_aadhar(
+    data: AadharUploadRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not (data.aadhar_data.startswith("data:image/") or data.aadhar_data.startswith("data:application/pdf")):
+        raise HTTPException(status_code=400, detail="Invalid format. Must be a base64 image or PDF data URI.")
+    # 2MB base64 ≈ 2_854_267 chars
+    if len(data.aadhar_data) > 2_854_267:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 2MB.")
+    svc = UserService(db)
+    profile = await svc.get_or_create_profile(current_user.id)
+    profile.aadhar_url = data.aadhar_data
     await db.flush()
     return profile
 

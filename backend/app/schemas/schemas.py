@@ -15,6 +15,8 @@ class RegisterRequest(BaseModel):
     address: Optional[str] = Field(None, max_length=500)
     emergency_contact: Optional[str] = Field(None, max_length=200)
     emergency_phone: Optional[str] = None
+    emergency_contact_2: Optional[str] = Field(None, max_length=200)
+    emergency_phone_2: Optional[str] = None
     password: Optional[str] = Field(None, min_length=8)
     t_shirt_size: str = Field(..., pattern=r"^(XS|S|M|L|XL|XXL|XXXL)$")
 
@@ -41,6 +43,8 @@ class UpdateProfileRequest(BaseModel):
     address: Optional[str] = Field(None, max_length=500)
     emergency_contact: Optional[str] = Field(None, max_length=200)
     emergency_phone: Optional[str] = None
+    emergency_contact_2: Optional[str] = Field(None, max_length=200)
+    emergency_phone_2: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -68,6 +72,7 @@ class MemberProfileResponse(BaseModel):
     interests: Optional[str] = None
     bio: Optional[str] = None
     strava_link: Optional[str] = None
+    aadhar_url: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -97,6 +102,10 @@ class UserResponse(BaseModel):
     gender: str
     address: Optional[str]
     emergency_contact: Optional[str]
+    emergency_phone: Optional[str] = None
+    emergency_contact_2: Optional[str] = None
+    emergency_phone_2: Optional[str] = None
+    account_status: str = "approved"
     is_admin: bool
     t_shirt_size: Optional[str] = None
     profile: Optional[MemberProfileResponse] = None
@@ -183,3 +192,37 @@ class OfflineUploadResult(BaseModel):
 
 class TshirtUpdateRequest(BaseModel):
     t_shirt_size: str = Field(..., pattern=r"^(XS|S|M|L|XL|XXL|XXXL)$")
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)
+
+
+class AadharUploadRequest(BaseModel):
+    aadhar_data: str  # base64 data URI (image/* or application/pdf)
+
+
+class PaymentHistoryItem(BaseModel):
+    id: uuid.UUID
+    razorpay_order_id: str
+    razorpay_payment_id: Optional[str] = None
+    idempotency_key: str
+    amount_paise: int
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PendingUserItem(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    email: str
+    phone: str
+    age: int
+    gender: str
+    t_shirt_size: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

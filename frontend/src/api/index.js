@@ -41,6 +41,8 @@ export const authApi = {
   uploadPhoto: (photo_data) => apiClient.put('/auth/me/photo', { photo_data }),
   forgotPassword: (identifier) => apiClient.post('/auth/forgot-password', { identifier }),
   resetPassword: (identifier, otp, new_password) => apiClient.post('/auth/reset-password', { identifier, otp, new_password }),
+  changePassword: (data) => apiClient.post('/auth/change-password', data),
+  uploadAadhar: (aadhar_data) => apiClient.put('/auth/me/aadhar', { aadhar_data }),
 }
 
 // ─── Memberships ───────────────────────────────────────────────────────────
@@ -55,6 +57,7 @@ export const membershipApi = {
 export const paymentApi = {
   createOrder: (year) => apiClient.post('/payments/order', { year }),
   verifyPayment: (data) => apiClient.post('/payments/verify', data),
+  getMyPayments: () => apiClient.get('/payments/my'),
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────
@@ -74,6 +77,9 @@ export const adminApi = {
     apiClient.post('/admin/offline-payments/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+  getPendingUsers: () => apiClient.get('/admin/users/pending'),
+  approveUser: (id) => apiClient.put(`/admin/users/${id}/approve`),
+  rejectUser: (id) => apiClient.put(`/admin/users/${id}/reject`),
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────

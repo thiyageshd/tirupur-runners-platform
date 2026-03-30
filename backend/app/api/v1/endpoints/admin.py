@@ -3,16 +3,18 @@ import io
 import uuid as uuid_module
 from datetime import date
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 
 from app.db.session import get_db
-from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult, TshirtUpdateRequest
+from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult, TshirtUpdateRequest, PendingUserItem
 from app.services.membership_service import MembershipService
 from app.models.models import User, Membership, Payment
 from app.core.security import get_current_admin
+from app.utils.email import send_approval_email, send_rejection_email
+from app.core.config import settings
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -267,4 +269,56 @@ async def toggle_admin(
 
     user.is_admin = not user.is_admin
     await db.flush()
+    return user
+
+
+@router.get("/users/pending", response_model=list[PendingUserItem])
+async def get_pending_users(
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(User)
+        .where(User.account_status == "pending_approval")
+        .order_by(User.created_at.asc())
+    )
+    return result.scalars().all()
+
+
+@router.put("/users/{user_id}/approve", response_model=UserResponse)
+async def approve_user(
+    user_id: uuid_module.UUID,
+    background_tasks: BackgroundTasks,
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.account_status == "approved":
+        raise HTTPException(status_code=400, detail="User is already approved")
+    user.account_status = "approved"
+    await db.flush()
+    login_url = f"{settings.FRONTEND_URL}/members/login"
+    background_tasks.add_task(send_approval_email, user.email, user.full_name, login_url)
+    return user
+
+
+@router.put("/users/{user_id}/reject", response_model=UserResponse)
+async def reject_user(
+    user_id: uuid_module.UUID,
+    background_tasks: BackgroundTasks,
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.account_status == "rejected":
+        raise HTTPException(status_code=400, detail="User is already rejected")
+    user.account_status = "rejected"
+    await db.flush()
+    background_tasks.add_task(send_rejection_email, user.email, user.full_name)
     return user

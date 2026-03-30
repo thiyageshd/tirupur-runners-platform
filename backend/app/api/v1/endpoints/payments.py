@@ -3,15 +3,30 @@ import hmac
 import hashlib
 from datetime import date
 from fastapi import APIRouter, Depends, Request, HTTPException
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.schemas.schemas import CreateOrderRequest, OrderResponse, PaymentVerifyRequest
+from app.schemas.schemas import CreateOrderRequest, OrderResponse, PaymentVerifyRequest, PaymentHistoryItem
 from app.services.payment_service import PaymentService
+from app.models.models import Payment
 from app.core.security import get_current_user
 from app.core.config import settings
 
 router = APIRouter(prefix="/payments", tags=["payments"])
+
+
+@router.get("/my", response_model=list[PaymentHistoryItem])
+async def get_my_payments(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Payment)
+        .where(Payment.user_id == current_user.id)
+        .order_by(desc(Payment.created_at))
+    )
+    return result.scalars().all()
 
 
 @router.post("/order", response_model=OrderResponse)
@@ -20,6 +35,13 @@ async def create_order(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    account_status = getattr(current_user, 'account_status', 'approved')
+    if account_status != 'approved':
+        msg = {
+            'pending_approval': 'Your registration is pending admin approval. You will be notified once approved.',
+            'rejected': 'Your registration has been rejected. Please contact the club for assistance.',
+        }.get(account_status, 'Account not authorized to make payments.')
+        raise HTTPException(status_code=403, detail=msg)
     year = data.year or date.today().year
     svc = PaymentService(db)
     return await svc.create_order(current_user.id, year)

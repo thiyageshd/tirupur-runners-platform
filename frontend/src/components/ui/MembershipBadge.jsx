@@ -47,11 +47,10 @@ export default function MembershipBadge({ membership }) {
       <Icon size={16} className={config.text} />
       <div className="flex-1">
         <p className={`text-sm font-semibold ${config.text}`}>{config.label}</p>
-        {membership.end_date && (
-          <p className="text-xs text-gray-500">
-            Valid until {format(new Date(membership.end_date), 'dd MMM yyyy')}
-          </p>
-        )}
+        <p className="text-xs text-gray-500">
+          {membership.year && `FY ${membership.year}–${String(membership.year + 1).slice(-2)}`}
+          {membership.end_date && ` · Valid until ${format(new Date(membership.end_date), 'dd MMM yyyy')}`}
+        </p>
       </div>
     </div>
   )
