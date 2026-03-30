@@ -83,6 +83,8 @@ export const adminApi = {
   deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),
   updateMembershipId: (membershipUuid, membership_id) =>
     apiClient.put(`/admin/memberships/${membershipUuid}/membership-id`, { membership_id }),
+  replaceAadhar: (userId, aadhar_data) =>
+    apiClient.put(`/admin/users/${userId}/aadhar`, { aadhar_data }),
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────

@@ -25,11 +25,8 @@ export default function DashboardPage() {
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
   const fileInputRef = useRef(null)
-  const aadharInputRef = useRef(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
-  const [aadharUploading, setAadharUploading] = useState(false)
-  const [aadharError, setAadharError] = useState('')
 
   // Password change modal
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -141,30 +138,6 @@ export default function DashboardPage() {
         setPhotoError(err.response?.data?.detail || 'Upload failed')
       } finally {
         setPhotoUploading(false)
-        e.target.value = ''
-      }
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const handleAadharChange = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 2097152) {
-      setAadharError('File must be under 2MB')
-      return
-    }
-    setAadharError('')
-    setAadharUploading(true)
-    const reader = new FileReader()
-    reader.onload = async (ev) => {
-      try {
-        const res = await authApi.uploadAadhar(ev.target.result)
-        setMemberProfile(res.data)
-      } catch (err) {
-        setAadharError(err.response?.data?.detail || 'Upload failed')
-      } finally {
-        setAadharUploading(false)
         e.target.value = ''
       }
     }
@@ -469,38 +442,40 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Aadhar upload */}
+              {/* Aadhar — view only */}
               <div className="border-t border-gray-100 pt-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Documents</p>
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Aadhar Card</p>
-                  <div className="flex items-center gap-3">
-                    {memberProfile?.aadhar_url ? (
+                  {memberProfile?.aadhar_url ? (
+                    <div className="flex items-center gap-3">
                       <span className="text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full flex items-center gap-1">
                         <Check size={11} /> Uploaded
                       </span>
-                    ) : (
-                      <span className="text-xs text-gray-400">Not uploaded</span>
-                    )}
-                    <button
-                      onClick={() => aadharInputRef.current?.click()}
-                      disabled={aadharUploading}
-                      className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1 disabled:opacity-50"
-                    >
-                      {aadharUploading
-                        ? <><Loader2 size={11} className="animate-spin" /> Uploading…</>
-                        : <><FileText size={11} /> {memberProfile?.aadhar_url ? 'Replace' : 'Upload'}</>}
-                    </button>
-                    <input
-                      ref={aadharInputRef}
-                      type="file"
-                      accept="image/*,application/pdf"
-                      className="hidden"
-                      onChange={handleAadharChange}
-                    />
-                  </div>
-                  {aadharError && <p className="text-xs text-red-500 mt-1">{aadharError}</p>}
-                  <p className="text-xs text-gray-400 mt-0.5">Max 2MB · JPG, PNG or PDF</p>
+                      <button
+                        onClick={() => {
+                          try {
+                            const arr = memberProfile.aadhar_url.split(',')
+                            const mime = arr[0].match(/:(.*?);/)[1]
+                            const bstr = atob(arr[1])
+                            const u8arr = new Uint8Array(bstr.length)
+                            for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i)
+                            const url = URL.createObjectURL(new Blob([u8arr], { type: mime }))
+                            window.open(url, '_blank')
+                          } catch {
+                            window.open(memberProfile.aadhar_url, '_blank')
+                          }
+                        }}
+                        className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+                      >
+                        <FileText size={12} /> View
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 w-fit block">
+                      Not uploaded — contact admin
+                    </span>
+                  )}
                 </div>
               </div>
 

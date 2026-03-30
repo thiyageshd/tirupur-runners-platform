@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 
 from app.db.session import get_db
-from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult, TshirtUpdateRequest, PendingUserItem, MembershipIdUpdateRequest
+from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult, TshirtUpdateRequest, PendingUserItem, MembershipIdUpdateRequest, AadharUploadRequest
 from app.services.membership_service import MembershipService
-from app.models.models import User, Membership, Payment
+from app.models.models import User, Membership, Payment, MemberProfile
 from app.core.security import get_current_admin
 from app.utils.email import send_approval_email, send_rejection_email
 from app.core.config import settings
@@ -422,3 +422,25 @@ async def update_membership_id(
     membership.membership_id = data.membership_id
     await db.flush()
     return {"membership_uuid": str(membership.id), "membership_id": membership.membership_id}
+
+
+@router.put("/users/{user_id}/aadhar")
+async def admin_replace_aadhar(
+    user_id: uuid_module.UUID,
+    data: AadharUploadRequest,
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    if not (data.aadhar_data.startswith("data:image/") or data.aadhar_data.startswith("data:application/pdf")):
+        raise HTTPException(status_code=400, detail="Invalid file type. Must be image or PDF.")
+    if len(data.aadhar_data) > 2_854_267:
+        raise HTTPException(status_code=400, detail="File too large (max 2MB)")
+
+    result = await db.execute(select(MemberProfile).where(MemberProfile.user_id == user_id))
+    profile = result.scalar_one_or_none()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Member profile not found")
+
+    profile.aadhar_url = data.aadhar_data
+    await db.flush()
+    return {"message": "Aadhar updated successfully"}

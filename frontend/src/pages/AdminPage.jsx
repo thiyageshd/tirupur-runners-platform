@@ -55,6 +55,11 @@ export default function AdminPage() {
   const [deletingUser, setDeletingUser] = useState(null)
   const [deleteToast, setDeleteToast] = useState(false)
 
+  // Aadhar replace (admin)
+  const aadharReplaceInputRef = useRef(null)
+  const [replacingAadharFor, setReplacingAadharFor] = useState(null) // { userId, listType: 'pending'|'members' }
+  const [aadharReplaceLoading, setAadharReplaceLoading] = useState(null) // userId
+
   // Offline payments tab
   const [uploadFile, setUploadFile] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -154,6 +159,38 @@ export default function AdminPage() {
     } catch {
       window.open(aadharUrl, '_blank')
     }
+  }
+
+  const triggerAadharReplace = (userId, listType) => {
+    setReplacingAadharFor({ userId, listType })
+    aadharReplaceInputRef.current?.click()
+  }
+
+  const handleAadharFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !replacingAadharFor) return
+    if (file.size > 2097152) { alert('File must be under 2MB'); return }
+    const reader = new FileReader()
+    const { userId, listType } = replacingAadharFor
+    reader.onload = async (ev) => {
+      setAadharReplaceLoading(userId)
+      try {
+        await adminApi.replaceAadhar(userId, ev.target.result)
+        // Update local state
+        if (listType === 'pending') {
+          setPendingUsers((prev) => prev.map((u) => u.id === userId ? { ...u, aadhar_url: ev.target.result } : u))
+        } else {
+          setMembers((prev) => prev.map((m) => m.user_id === userId ? { ...m, aadhar_url: ev.target.result } : m))
+        }
+      } catch (err) {
+        alert(err.response?.data?.detail || 'Failed to replace Aadhar')
+      } finally {
+        setAadharReplaceLoading(null)
+        setReplacingAadharFor(null)
+        e.target.value = ''
+      }
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleDelete = async (userId) => {
@@ -310,6 +347,14 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen pt-20 pb-16 px-4 bg-gray-50">
+      {/* Hidden file input shared across all Aadhar replace actions */}
+      <input
+        ref={aadharReplaceInputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        className="hidden"
+        onChange={handleAadharFileChange}
+      />
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -508,17 +553,32 @@ export default function AdminPage() {
                             )}
                           </td>
                           {/* Aadhar */}
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             {m.aadhar_url ? (
-                              <button
-                                onClick={() => openAadhar(m.aadhar_url, m.full_name)}
-                                className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
-                                title="View Aadhar"
-                              >
-                                <FileText size={13} /> View
-                              </button>
+                              <span className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => openAadhar(m.aadhar_url, m.full_name)}
+                                  className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+                                >
+                                  <FileText size={12} /> View
+                                </button>
+                                <button
+                                  onClick={() => triggerAadharReplace(m.user_id, 'members')}
+                                  disabled={aadharReplaceLoading === m.user_id}
+                                  className="text-xs text-gray-400 hover:text-brand-600 flex items-center gap-0.5 disabled:opacity-50"
+                                  title="Replace Aadhar"
+                                >
+                                  {aadharReplaceLoading === m.user_id ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                                </button>
+                              </span>
                             ) : (
-                              <span className="text-xs text-gray-300">—</span>
+                              <button
+                                onClick={() => triggerAadharReplace(m.user_id, 'members')}
+                                disabled={aadharReplaceLoading === m.user_id}
+                                className="text-xs text-gray-400 hover:text-brand-600 flex items-center gap-1 disabled:opacity-50"
+                              >
+                                {aadharReplaceLoading === m.user_id ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} Upload
+                              </button>
                             )}
                           </td>
                           <td className="px-4 py-3">
@@ -653,17 +713,35 @@ export default function AdminPage() {
                             <span className="text-xs text-blue-700 font-medium">PDF</span>
                           </div>
                         )}
-                        <button
-                          onClick={() => openAadhar(u.aadhar_url, u.full_name)}
-                          className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
-                        >
-                          <FileText size={12} /> View Aadhar
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openAadhar(u.aadhar_url, u.full_name)}
+                            className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+                          >
+                            <FileText size={12} /> View
+                          </button>
+                          <button
+                            onClick={() => triggerAadharReplace(u.id, 'pending')}
+                            disabled={aadharReplaceLoading === u.id}
+                            className="text-xs text-gray-500 hover:text-brand-600 font-medium flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {aadharReplaceLoading === u.id ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} Replace
+                          </button>
+                        </div>
                       </div>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full mt-1">
-                        ⚠ No Aadhar uploaded
-                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                          ⚠ No Aadhar uploaded
+                        </span>
+                        <button
+                          onClick={() => triggerAadharReplace(u.id, 'pending')}
+                          disabled={aadharReplaceLoading === u.id}
+                          className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1 disabled:opacity-50"
+                        >
+                          {aadharReplaceLoading === u.id ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} Upload
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
