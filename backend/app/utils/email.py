@@ -1,8 +1,9 @@
-import smtplib
 import logging
-import asyncio
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
+
+# import smtplib  # Gmail SMTP — reserved for future use
+# from email.mime.text import MIMEText
+# from email.mime.multipart import MIMEMultipart
 
 from app.core.config import settings
 
@@ -10,31 +11,34 @@ logger = logging.getLogger(__name__)
 
 
 def _send(to_email: str, subject: str, html: str):
-    """Send via Gmail SMTP (port 587 + STARTTLS). Falls back to console log when credentials not set."""
-    if not settings.GMAIL_USER or not settings.GMAIL_APP_PASSWORD:
+    """Send via Resend API (HTTPS — works on all cloud hosts).
+    Falls back to console log when API key not set.
+    """
+    if not settings.RESEND_API_KEY:
         logger.info(f"[DEV] Email to {to_email} | {subject}")
         return
+    resend.api_key = settings.RESEND_API_KEY
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"Tirupur Runners Club <{settings.FROM_EMAIL}>"
-        msg["To"] = to_email
-        msg["Reply-To"] = settings.GMAIL_USER
-        msg.attach(MIMEText(html, "html"))
-
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(settings.GMAIL_USER, settings.GMAIL_APP_PASSWORD)
-            server.sendmail(settings.GMAIL_USER, to_email, msg.as_string())
-        logger.info(f"Email sent successfully to {to_email} | {subject}")
-    except smtplib.SMTPAuthenticationError as e:
-        logger.error(f"Gmail auth failed — check GMAIL_USER/GMAIL_APP_PASSWORD: {e}")
-    except smtplib.SMTPException as e:
-        logger.error(f"SMTP error sending to {to_email}: {e}")
+        resend.Emails.send({
+            "from": f"Tirupur Runners Club <{settings.FROM_EMAIL}>",
+            "to": [to_email],
+            "subject": subject,
+            "html": html,
+        })
+        logger.info(f"Email sent to {to_email} | {subject}")
     except Exception as e:
-        logger.error(f"Unexpected error sending email to {to_email}: {e}")
+        logger.error(f"Failed to send email to {to_email}: {e}")
+
+    # ── Gmail SMTP (future use) ────────────────────────────────────────────
+    # msg = MIMEMultipart("alternative")
+    # msg["Subject"] = subject
+    # msg["From"] = f"Tirupur Runners Club <{settings.FROM_EMAIL}>"
+    # msg["To"] = to_email
+    # with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
+    #     server.ehlo(); server.starttls(); server.ehlo()
+    #     server.login(settings.GMAIL_USER, settings.GMAIL_APP_PASSWORD)
+    #     server.sendmail(settings.GMAIL_USER, to_email, msg.as_string())
+    # ──────────────────────────────────────────────────────────────────────
 
 
 async def send_otp_email(to_email: str, otp: str):
@@ -47,8 +51,7 @@ async def send_otp_email(to_email: str, otp: str):
           <p style="color:#666;font-size:13px">Valid for 5 minutes. Do not share this OTP.</p>
         </div>
         """
-    await asyncio.to_thread(_send, to_email, subject, html)
-    logger.info(f"Approval/OTP email attempted to {to_email} | {subject}")
+    _send(to_email, subject, html)
 
 
 async def send_membership_confirmation(to_email: str, name: str, end_date: str):
@@ -63,8 +66,7 @@ async def send_membership_confirmation(to_email: str, name: str, end_date: str):
           <p style="color:#999;font-size:12px">tirupurrunners.com</p>
         </div>
         """
-    await asyncio.to_thread(_send, to_email, subject, html)
-    logger.info(f"Membership confirmation email attempted to {to_email} | {subject}")
+    _send(to_email, subject, html)
 
 
 async def send_approval_email(to_email: str, name: str, login_url: str):
@@ -84,8 +86,7 @@ async def send_approval_email(to_email: str, name: str, login_url: str):
           <p style="color:#999;font-size:12px">Questions? Email tirupurrunners@gmail.com or call +91 94882 52599</p>
         </div>
         """
-    await asyncio.to_thread(_send, to_email, subject, html)
-    logger.info(f"Approval email attempted to {to_email} | {subject}")
+    _send(to_email, subject, html)
 
 
 async def send_rejection_email(to_email: str, name: str):
@@ -104,5 +105,4 @@ async def send_rejection_email(to_email: str, name: str):
           <p style="color:#999;font-size:12px">Tirupur Runners Club</p>
         </div>
         """
-    await asyncio.to_thread(_send, to_email, subject, html)
-    logger.info(f"Rejection email attempted to {to_email} | {subject}")
+    _send(to_email, subject, html)

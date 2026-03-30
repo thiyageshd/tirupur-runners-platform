@@ -28,10 +28,8 @@ services:
         sync: false
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
-      - key: GMAIL_USER
-        sync: false                      # e.g. tirupurrunnersmarathon@gmail.com
-      - key: GMAIL_APP_PASSWORD
-        sync: false                      # 16-char Google App Password (not regular password)
+      - key: RESEND_API_KEY
+        sync: false                      # Get from resend.com dashboard
       - key: FROM_EMAIL
         value: "noreply@tirupurrunners.com"
       - key: MEMBERSHIP_AMOUNT_PAISE

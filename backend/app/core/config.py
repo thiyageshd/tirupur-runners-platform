@@ -26,12 +26,13 @@ class Settings(BaseSettings):
     MEMBERSHIP_RENEWAL_AMOUNT_PAISE: int = 150000  # ₹1500 — renewal for existing members
 
     # Admin
-    ADMIN_EMAIL: str = "admin@tirupurrunners.com"
+    ADMIN_EMAIL: str = "tirupurrunners@gmail.com"
 
-    # Email (Gmail SMTP)
+    # Email — Gmail SMTP — reserved for future use
     GMAIL_USER: str = "tirupurrunners@gmail.com"        # e.g. tirupurrunners@gmail.com
     GMAIL_APP_PASSWORD: str = "ylzzpldrdptecljc"  # 16-char Google App Password
     FROM_EMAIL: str = "noreply@tirupurrunners.com"
+    RESEND_API_KEY: str = "re_Bw22ZR6j_LaP2gjM7xwSA1xyiZxw8ecxr"
 
     # CORS + Email links (override per environment)
     # localhost:  http://localhost:5173
