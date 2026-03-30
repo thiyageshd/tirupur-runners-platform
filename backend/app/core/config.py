@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # Email (Gmail SMTP)
     GMAIL_USER: str = ""        # e.g. tirupurrunnersmarathon@gmail.com
-    GMAIL_APP_PASSWORD: str = ""  # 16-char Google App Password
+    GMAIL_APP_PASSWORD: str = "ylzz pldr dpte cljc"  # 16-char Google App Password
     FROM_EMAIL: str = "noreply@tirupurrunners.com"
 
     # CORS
