@@ -17,7 +17,7 @@ def _send(to_email: str, subject: str, html: str):
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = f"Tirupur Runners Club <{settings.GMAIL_USER}>"
+        msg["From"] = f"Tirupur Runners Club <{settings.FROM_EMAIL}>"
         msg["To"] = to_email
         msg["Reply-To"] = settings.GMAIL_USER
         msg.attach(MIMEText(html, "html"))

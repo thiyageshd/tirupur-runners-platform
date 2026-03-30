@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Loader2, CheckCircle } from 'lucide-react'
 import FormField from '../components/ui/FormField'
@@ -15,7 +15,24 @@ export default function ForgotPasswordPage() {
   const [resetLoading, setResetLoading] = useState(false)
   const [resetError, setResetError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendLoading, setResendLoading] = useState(false)
+  const cooldownRef = useRef(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    return () => clearInterval(cooldownRef.current)
+  }, [])
+
+  const startCooldown = () => {
+    setResendCooldown(60)
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) { clearInterval(cooldownRef.current); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+  }
 
   const handleSendOtp = async (e) => {
     e.preventDefault()
@@ -27,10 +44,25 @@ export default function ForgotPasswordPage() {
     try {
       await authApi.forgotPassword(trimmed)
       setStep(2)
+      startCooldown()
     } catch (err) {
       setIdentifierError(err.response?.data?.detail || 'Failed to send OTP. Try again.')
     } finally {
       setIdentifierLoading(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    setResendLoading(true)
+    setResetError('')
+    try {
+      await authApi.forgotPassword(email.trim().toLowerCase())
+      setOtp('')
+      startCooldown()
+    } catch (err) {
+      setResetError(err.response?.data?.detail || 'Failed to resend OTP. Try again.')
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -112,6 +144,21 @@ export default function ForgotPasswordPage() {
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 />
               </FormField>
+
+              <div className="text-right -mt-2">
+                {resendCooldown > 0 ? (
+                  <span className="text-xs text-gray-400">Resend OTP in {resendCooldown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-xs text-brand-600 font-medium hover:underline disabled:opacity-50"
+                    onClick={handleResendOtp}
+                    disabled={resendLoading}
+                  >
+                    {resendLoading ? 'Sending…' : 'Resend OTP'}
+                  </button>
+                )}
+              </div>
               <FormField label="New Password" required>
                 <input
                   type="password"

@@ -167,7 +167,7 @@ async def reset_password(
     if not user or not user.otp_secret:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
     totp = pyotp.TOTP(user.otp_secret, interval=300)
-    if not totp.verify(data.otp, valid_window=1):
+    if not totp.verify(data.otp, valid_window=0):
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
     user.hashed_password = hash_password(data.new_password)
     await db.flush()
