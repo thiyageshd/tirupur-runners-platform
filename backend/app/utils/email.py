@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def _send(to_email: str, subject: str, html: str):
-    """Send via Gmail SMTP. Falls back to console log when credentials not set."""
+    """Send via Gmail SMTP (port 587 + STARTTLS). Falls back to console log when credentials not set."""
     if not settings.GMAIL_USER or not settings.GMAIL_APP_PASSWORD:
         logger.info(f"[DEV] Email to {to_email} | {subject}")
         return
@@ -22,11 +22,19 @@ def _send(to_email: str, subject: str, html: str):
         msg["Reply-To"] = settings.GMAIL_USER
         msg.attach(MIMEText(html, "html"))
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
             server.login(settings.GMAIL_USER, settings.GMAIL_APP_PASSWORD)
             server.sendmail(settings.GMAIL_USER, to_email, msg.as_string())
+        logger.info(f"Email sent successfully to {to_email} | {subject}")
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error(f"Gmail auth failed — check GMAIL_USER/GMAIL_APP_PASSWORD: {e}")
+    except smtplib.SMTPException as e:
+        logger.error(f"SMTP error sending to {to_email}: {e}")
     except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {e}")
+        logger.error(f"Unexpected error sending email to {to_email}: {e}")
 
 
 async def send_otp_email(to_email: str, otp: str):
