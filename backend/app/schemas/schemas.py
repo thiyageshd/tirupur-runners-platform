@@ -226,5 +226,6 @@ class PendingUserItem(BaseModel):
     gender: str
     t_shirt_size: Optional[str] = None
     created_at: datetime
+    aadhar_url: Optional[str] = None
 
     model_config = {"from_attributes": True}

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Download, Users, TrendingUp, XCircle, Clock, Loader2,
   Crown, Shield, ShieldOff, Upload, MessageSquare, Settings, CheckCircle2,
-  Pencil, Check, X, UserCheck, UserX,
+  Pencil, Check, X, UserCheck, UserX, FileText,
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { adminApi, settingsApi } from '../api'
@@ -116,6 +116,22 @@ export default function AdminPage() {
       alert(err.response?.data?.detail || 'Failed to reject')
     } finally {
       setRejectingUser(null)
+    }
+  }
+
+  const openAadhar = (aadharUrl, name) => {
+    // Convert base64 data URI to blob URL so the browser can display it
+    try {
+      const arr = aadharUrl.split(',')
+      const mime = arr[0].match(/:(.*?);/)[1]
+      const bstr = atob(arr[1])
+      const u8arr = new Uint8Array(bstr.length)
+      for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i)
+      const blob = new Blob([u8arr], { type: mime })
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+    } catch {
+      window.open(aadharUrl, '_blank')
     }
   }
 
@@ -513,18 +529,19 @@ export default function AdminPage() {
                 <p className="text-sm">No pending registrations</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {pendingUsers.map((u) => (
-                  <div key={u.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 text-sm">{u.full_name}</p>
-                      <p className="text-xs text-gray-500 truncate">{u.email} · {u.phone}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Age {u.age} · {u.gender}
-                        {u.t_shirt_size && ` · ${u.t_shirt_size}`}
-                        {u.created_at && ` · Registered ${format(new Date(u.created_at), 'dd MMM yyyy')}`}
-                      </p>
-                    </div>
+                  <div key={u.id} className="p-4 bg-gray-50 rounded-xl">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm">{u.full_name}</p>
+                        <p className="text-xs text-gray-500 truncate">{u.email} · {u.phone}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Age {u.age} · {u.gender}
+                          {u.t_shirt_size && ` · ${u.t_shirt_size}`}
+                          {u.created_at && ` · Registered ${format(new Date(u.created_at), 'dd MMM yyyy')}`}
+                        </p>
+                      </div>
                       <div className="flex gap-2 flex-shrink-0">
                         <button
                           onClick={() => handleApprove(u.id)}
@@ -547,6 +564,36 @@ export default function AdminPage() {
                           Reject
                         </button>
                       </div>
+                    </div>
+
+                    {/* Aadhar preview / status */}
+                    {u.aadhar_url ? (
+                      <div className="flex items-center gap-3 mt-1">
+                        {u.aadhar_url.startsWith('data:image/') ? (
+                          <img
+                            src={u.aadhar_url}
+                            alt="Aadhar"
+                            className="h-16 w-24 object-cover rounded-lg border border-gray-200 bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => openAadhar(u.aadhar_url, u.full_name)}
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
+                            <FileText size={16} className="text-blue-600" />
+                            <span className="text-xs text-blue-700 font-medium">PDF</span>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => openAadhar(u.aadhar_url, u.full_name)}
+                          className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+                        >
+                          <FileText size={12} /> View Aadhar
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full mt-1">
+                        ⚠ No Aadhar uploaded
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

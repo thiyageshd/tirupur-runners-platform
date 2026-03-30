@@ -31,18 +31,12 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/">
           <img
             src={logo}
             alt="Tirupur Runners"
-            className="h-9 w-9 object-contain rounded-xl"
+            className="h-14 w-auto object-contain"
           />
-          <div className="w-9 h-9 bg-brand-600 rounded-xl items-center justify-center hidden">
-            <span className="text-white font-display font-bold text-sm">TR</span>
-          </div>
-          <span className="font-display font-bold text-gray-900 text-lg leading-tight">
-            Tirupur <span className="text-brand-600">Runners</span>
-          </span>
         </Link>
 
         {/* Desktop links */}

@@ -290,7 +290,21 @@ async def get_pending_users(
         .where(User.account_status == "pending_approval")
         .order_by(User.created_at.asc())
     )
-    return result.scalars().all()
+    users = result.scalars().all()
+    return [
+        PendingUserItem(
+            id=u.id,
+            full_name=u.full_name,
+            email=u.email,
+            phone=u.phone,
+            age=u.age,
+            gender=u.gender,
+            t_shirt_size=u.t_shirt_size,
+            created_at=u.created_at,
+            aadhar_url=u.profile.aadhar_url if u.profile else None,
+        )
+        for u in users
+    ]
 
 
 @router.put("/users/{user_id}/approve", response_model=UserResponse)

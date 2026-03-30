@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
-import { Eye, EyeOff, Clock, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Clock, Loader2, FileText, X } from 'lucide-react'
 import FormField from '../components/ui/FormField'
 import { authApi } from '../api'
 import { useAuthStore } from '../store/authStore'
 
-const STEPS = ['Account', 'Personal Info']
+const STEPS = ['Account', 'Personal Info', 'Documents']
 
 export default function RegisterPage() {
   const [step, setStep] = useState(0)
@@ -15,6 +15,11 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const { setToken, fetchMe } = useAuthStore()
+
+  const [aadharDataUrl, setAadharDataUrl] = useState(null)
+  const [aadharMeta, setAadharMeta] = useState(null) // { name, type }
+  const [aadharError, setAadharError] = useState('')
+  const aadharInputRef = useRef(null)
 
   const {
     register,
@@ -26,6 +31,7 @@ export default function RegisterPage() {
   const STEP_FIELDS = [
     ['full_name', 'email', 'password'],
     ['phone', 'age', 'gender', 't_shirt_size'],
+    [],
   ]
 
   const nextStep = async () => {
@@ -33,7 +39,34 @@ export default function RegisterPage() {
     if (valid) setStep((s) => s + 1)
   }
 
+  const handleAadharChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2097152) {
+      setAadharError('File must be under 2MB')
+      return
+    }
+    setAadharError('')
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setAadharDataUrl(ev.target.result)
+      setAadharMeta({ name: file.name, type: file.type })
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  const clearAadhar = () => {
+    setAadharDataUrl(null)
+    setAadharMeta(null)
+    setAadharError('')
+  }
+
   const onSubmit = async (data) => {
+    if (!aadharDataUrl) {
+      setAadharError('Aadhar card is required')
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -45,7 +78,10 @@ export default function RegisterPage() {
       setToken(loginRes.data.access_token)
       await fetchMe()
 
-      // 3. Save optional profile extras
+      // 3. Upload Aadhar
+      await authApi.uploadAadhar(aadharDataUrl)
+
+      // 4. Save optional profile extras
       if (data.blood_group || data.strava_link) {
         try {
           await authApi.updateMyProfile({
@@ -298,12 +334,6 @@ export default function RegisterPage() {
                   </FormField>
                 </div>
 
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
-                    {error}
-                  </div>
-                )}
-
                 <div className="flex gap-3 mt-2">
                   <button
                     type="button"
@@ -314,15 +344,100 @@ export default function RegisterPage() {
                     ← Back
                   </button>
                   <button
-                    type="submit"
+                    type="button"
                     className="btn-primary flex-1"
+                    onClick={nextStep}
+                  >
+                    Continue →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2 — Documents */}
+            {step === 2 && (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h2 className="font-semibold text-gray-900 text-lg mb-1">Upload documents</h2>
+                  <p className="text-sm text-gray-500">Aadhar card is required for identity verification before approval.</p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">
+                    Aadhar Card <span className="text-red-500">*</span>
+                  </p>
+
+                  {aadharDataUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                      {aadharMeta?.type?.startsWith('image/') ? (
+                        <img
+                          src={aadharDataUrl}
+                          alt="Aadhar preview"
+                          className="w-full max-h-56 object-contain bg-gray-50"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-3 p-4 bg-blue-50">
+                          <FileText size={28} className="text-blue-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-blue-800 truncate">{aadharMeta?.name}</p>
+                            <p className="text-xs text-blue-600">PDF document</p>
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={clearAadhar}
+                        className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full shadow flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors"
+                        title="Remove"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => aadharInputRef.current?.click()}
+                      className="border-2 border-dashed border-gray-200 rounded-xl p-10 text-center cursor-pointer hover:border-brand-400 transition-colors"
+                    >
+                      <FileText size={28} className="mx-auto text-gray-300 mb-2" />
+                      <p className="text-sm font-medium text-gray-600">Click to upload Aadhar card</p>
+                      <p className="text-xs text-gray-400 mt-1">JPG, PNG or PDF · Max 2MB</p>
+                    </div>
+                  )}
+
+                  <input
+                    ref={aadharInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={handleAadharChange}
+                  />
+
+                  {aadharError && <p className="text-xs text-red-500 mt-1.5">{aadharError}</p>}
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    className="btn-outline flex-1"
+                    onClick={() => setStep(1)}
                     disabled={loading}
                   >
-                    {loading ? (
-                      <><Loader2 size={16} className="animate-spin" /> Submitting…</>
-                    ) : (
-                      'Complete Registration'
-                    )}
+                    ← Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary flex-1"
+                    disabled={loading || !aadharDataUrl}
+                  >
+                    {loading
+                      ? <><Loader2 size={16} className="animate-spin" /> Submitting…</>
+                      : 'Complete Registration'}
                   </button>
                 </div>
               </div>
