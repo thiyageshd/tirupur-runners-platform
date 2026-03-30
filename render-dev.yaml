@@ -27,10 +27,10 @@ services:
         value: "True"
       - key: ADMIN_EMAIL
         value: "admin@tirupurrunners.com"
-      - key: SENDGRID_API_KEY
-        sync: false
-      - key: FROM_EMAIL
-        value: "noreply@tirupurrunners.com"
+      - key: GMAIL_USER
+        value: "tirupurrunnersmarathon@gmail.com"
+      - key: GMAIL_APP_PASSWORD
+        sync: false                      # Set in Render dashboard — 16-char Google App Password
       - key: FRONTEND_URL
         value: "https://tirupur-runners-web-dev.onrender.com"
 

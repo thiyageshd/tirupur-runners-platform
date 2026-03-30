@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, RefreshCw, Pencil, X, Check, Camera, AlertTriangle, FileText, Lock } from 'lucide-react'
+import { Loader2, RefreshCw, Pencil, X, Check, Camera, AlertTriangle, FileText, Lock, Eye, EyeOff } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { format } from 'date-fns'
 import { useAuthStore } from '../store/authStore'
@@ -33,6 +33,9 @@ export default function DashboardPage() {
   const [pwLoading, setPwLoading] = useState(false)
   const [pwError, setPwError] = useState('')
   const [pwSuccess, setPwSuccess] = useState(false)
+  const [showCurrentPw, setShowCurrentPw] = useState(false)
+  const [showNewPw, setShowNewPw] = useState(false)
+  const [showConfirmPw, setShowConfirmPw] = useState(false)
   const { register: registerPw, handleSubmit: handleSubmitPw, reset: resetPw, watch: watchPw, formState: { errors: pwErrors } } = useForm()
 
   useEffect(() => {
@@ -706,34 +709,49 @@ export default function DashboardPage() {
             ) : (
               <form onSubmit={handleSubmitPw(onChangePassword)} className="flex flex-col gap-4">
                 <FormField label="Current Password" required error={pwErrors.current_password?.message}>
-                  <input
-                    type="password"
-                    className="input-field"
-                    placeholder="Your current password"
-                    {...registerPw('current_password', { required: 'Required' })}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showCurrentPw ? 'text' : 'password'}
+                      className="input-field pr-10"
+                      placeholder="Your current password"
+                      {...registerPw('current_password', { required: 'Required' })}
+                    />
+                    <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" onClick={() => setShowCurrentPw(!showCurrentPw)}>
+                      {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </FormField>
                 <FormField label="New Password" required error={pwErrors.new_password?.message}>
-                  <input
-                    type="password"
-                    className="input-field"
-                    placeholder="Min. 8 characters"
-                    {...registerPw('new_password', {
-                      required: 'Required',
-                      minLength: { value: 8, message: 'Minimum 8 characters' },
-                    })}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showNewPw ? 'text' : 'password'}
+                      className="input-field pr-10"
+                      placeholder="Min. 8 characters"
+                      {...registerPw('new_password', {
+                        required: 'Required',
+                        minLength: { value: 8, message: 'Minimum 8 characters' },
+                      })}
+                    />
+                    <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" onClick={() => setShowNewPw(!showNewPw)}>
+                      {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </FormField>
                 <FormField label="Confirm New Password" required error={pwErrors.confirm_new_password?.message}>
-                  <input
-                    type="password"
-                    className="input-field"
-                    placeholder="Repeat new password"
-                    {...registerPw('confirm_new_password', {
-                      required: 'Required',
-                      validate: (val) => val === watchPw('new_password') || 'Passwords do not match',
-                    })}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPw ? 'text' : 'password'}
+                      className="input-field pr-10"
+                      placeholder="Repeat new password"
+                      {...registerPw('confirm_new_password', {
+                        required: 'Required',
+                        validate: (val) => val === watchPw('new_password') || 'Passwords do not match',
+                      })}
+                    />
+                    <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" onClick={() => setShowConfirmPw(!showConfirmPw)}>
+                      {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </FormField>
 
                 {pwError && (

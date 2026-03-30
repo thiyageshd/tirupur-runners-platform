@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Loader2, CheckCircle } from 'lucide-react'
+import { Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import FormField from '../components/ui/FormField'
 import { authApi } from '../api'
 
@@ -17,6 +17,8 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [resendLoading, setResendLoading] = useState(false)
+  const [showNewPw, setShowNewPw] = useState(false)
+  const [showConfirmPw, setShowConfirmPw] = useState(false)
   const cooldownRef = useRef(null)
   const navigate = useNavigate()
 
@@ -160,22 +162,32 @@ export default function ForgotPasswordPage() {
                 )}
               </div>
               <FormField label="New Password" required>
-                <input
-                  type="password"
-                  className="input-field"
-                  placeholder="Min. 8 characters"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPw ? 'text' : 'password'}
+                    className="input-field pr-10"
+                    placeholder="Min. 8 characters"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" onClick={() => setShowNewPw(!showNewPw)}>
+                    {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </FormField>
               <FormField label="Confirm New Password" required>
-                <input
-                  type="password"
-                  className="input-field"
-                  placeholder="Repeat your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPw ? 'text' : 'password'}
+                    className="input-field pr-10"
+                    placeholder="Repeat your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                  <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" onClick={() => setShowConfirmPw(!showConfirmPw)}>
+                    {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </FormField>
 
               {resetError && (
