@@ -33,8 +33,8 @@ const FEATURES = [
 ]
 
 export default function HomePage() {
-  const { settings } = useAuthStore()
-  const showJoin = settings?.show_join_club !== 'false'
+  const { settings, user } = useAuthStore()
+  const showJoin = !user && settings?.show_join_club !== 'false'
 
   return (
     <div className="pt-16">

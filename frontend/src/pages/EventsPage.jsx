@@ -49,8 +49,8 @@ const BADGE_COLORS = {
 }
 
 export default function EventsPage() {
-  const { settings } = useAuthStore()
-  const showJoin = settings?.show_join_club !== 'false'
+  const { settings, user } = useAuthStore()
+  const showJoin = !user && settings?.show_join_club !== 'false'
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4">

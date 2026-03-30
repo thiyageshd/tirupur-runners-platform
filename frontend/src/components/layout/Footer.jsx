@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
+import { useAuthStore } from '../../store/authStore'
 
 export default function Footer() {
+  const { user } = useAuthStore()
   return (
     <footer className="bg-gray-900 text-gray-400 mt-24">
       <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -23,7 +25,7 @@ export default function Footer() {
               ['/', 'Home'],
               ['/about', 'About Us'],
               ['/events', 'Events'],
-              ['/members/register', 'Join the Club'],
+              ...(!user ? [['/members/register', 'Join the Club']] : []),
               ['/contact', 'Contact'],
             ].map(([to, label]) => (
               <li key={to}>
