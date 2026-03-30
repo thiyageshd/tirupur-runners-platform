@@ -147,11 +147,14 @@ async def forgot_password(
     db: AsyncSession = Depends(get_db),
 ):
     svc = UserService(db)
-    user = await svc.get_by_identifier(data.identifier)
-    if user and user.otp_secret:
-        otp = pyotp.TOTP(user.otp_secret, interval=300).now()
-        background_tasks.add_task(send_otp_email, user.email, otp)
-    return {"message": "If this account exists, an OTP has been sent to the registered email"}
+    user = await svc.get_by_email(data.email.lower().strip())
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this email address")
+    if not user.otp_secret:
+        raise HTTPException(status_code=400, detail="Account setup incomplete. Contact admin.")
+    otp = pyotp.TOTP(user.otp_secret, interval=300).now()
+    background_tasks.add_task(send_otp_email, user.email, otp)
+    return {"message": "OTP sent to your registered email"}
 
 
 @router.post("/reset-password")
@@ -160,7 +163,7 @@ async def reset_password(
     db: AsyncSession = Depends(get_db),
 ):
     svc = UserService(db)
-    user = await svc.get_by_identifier(data.identifier)
+    user = await svc.get_by_email(data.email.lower().strip())
     if not user or not user.otp_secret:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
     totp = pyotp.TOTP(user.otp_secret, interval=300)

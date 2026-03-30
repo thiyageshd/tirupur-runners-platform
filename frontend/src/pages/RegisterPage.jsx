@@ -11,6 +11,7 @@ const STEPS = ['Account', 'Personal Info', 'Documents']
 export default function RegisterPage() {
   const [step, setStep] = useState(0)
   const [showPass, setShowPass] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -25,11 +26,12 @@ export default function RegisterPage() {
     register,
     handleSubmit,
     trigger,
+    watch,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
   const STEP_FIELDS = [
-    ['full_name', 'email', 'password'],
+    ['full_name', 'email', 'password', 'confirm_password'],
     ['phone', 'age', 'gender', 't_shirt_size'],
     [],
   ]
@@ -199,6 +201,27 @@ export default function RegisterPage() {
                       onClick={() => setShowPass(!showPass)}
                     >
                       {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </FormField>
+
+                <FormField label="Confirm Password" required error={errors.confirm_password?.message}>
+                  <div className="relative">
+                    <input
+                      type={showConfirm ? 'text' : 'password'}
+                      className="input-field pr-10"
+                      placeholder="Re-enter your password"
+                      {...register('confirm_password', {
+                        required: 'Please confirm your password',
+                        validate: (val) => val === watch('password') || 'Passwords do not match',
+                      })}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                    >
+                      {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </FormField>

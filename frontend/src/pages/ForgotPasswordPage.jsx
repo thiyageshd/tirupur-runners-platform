@@ -6,7 +6,7 @@ import { authApi } from '../api'
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState(1)
-  const [identifier, setIdentifier] = useState('')
+  const [email, setEmail] = useState('')
   const [identifierLoading, setIdentifierLoading] = useState(false)
   const [identifierError, setIdentifierError] = useState('')
   const [otp, setOtp] = useState('')
@@ -19,11 +19,13 @@ export default function ForgotPasswordPage() {
 
   const handleSendOtp = async (e) => {
     e.preventDefault()
-    if (!identifier.trim()) { setIdentifierError('Please enter your email or mobile number'); return }
+    const trimmed = email.trim().toLowerCase()
+    if (!trimmed) { setIdentifierError('Please enter your email address'); return }
+    if (!/^\S+@\S+\.\S+$/.test(trimmed)) { setIdentifierError('Please enter a valid email address'); return }
     setIdentifierLoading(true)
     setIdentifierError('')
     try {
-      await authApi.forgotPassword(identifier.trim())
+      await authApi.forgotPassword(trimmed)
       setStep(2)
     } catch (err) {
       setIdentifierError(err.response?.data?.detail || 'Failed to send OTP. Try again.')
@@ -40,7 +42,7 @@ export default function ForgotPasswordPage() {
     setResetLoading(true)
     setResetError('')
     try {
-      await authApi.resetPassword(identifier.trim(), otp, newPassword)
+      await authApi.resetPassword(email.trim().toLowerCase(), otp, newPassword)
       setSuccess(true)
       setTimeout(() => navigate('/members/login'), 2000)
     } catch (err) {
@@ -69,21 +71,21 @@ export default function ForgotPasswordPage() {
           <h1 className="font-display font-bold text-3xl text-gray-900 mb-2">Reset Password</h1>
           <p className="text-gray-500 text-sm">
             {step === 1
-              ? 'Enter your email or mobile to receive an OTP'
-              : 'Enter the OTP sent to your email and set a new password'}
+              ? 'Enter your registered email to receive a 6-digit OTP'
+              : `OTP sent to ${email} — enter it below to set a new password`}
           </p>
         </div>
 
         <div className="card">
           {step === 1 && (
             <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
-              <FormField label="Email or Mobile Number" required error={identifierError}>
+              <FormField label="Registered Email Address" required error={identifierError}>
                 <input
-                  type="text"
+                  type="email"
                   className="input-field"
-                  placeholder="you@email.com or 9876543210"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setIdentifierError('') }}
                 />
               </FormField>
               <button type="submit" className="btn-primary w-full" disabled={identifierLoading}>
@@ -93,18 +95,19 @@ export default function ForgotPasswordPage() {
               </button>
               <p className="text-center text-sm text-gray-500">
                 Remember your password?{' '}
-                <Link to="/login" className="text-brand-600 font-medium hover:underline">Sign in</Link>
+                <Link to="/members/login" className="text-brand-600 font-medium hover:underline">Sign in</Link>
               </p>
             </form>
           )}
 
           {step === 2 && (
             <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
-              <FormField label="OTP" required hint="Check your registered email — OTP valid for 5 minutes">
+              <FormField label="6-Digit OTP" required hint="Check your email — OTP valid for 5 minutes">
                 <input
                   className="input-field tracking-widest text-lg font-mono text-center"
                   placeholder="• • • • • •"
                   maxLength={6}
+                  inputMode="numeric"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 />
@@ -118,7 +121,7 @@ export default function ForgotPasswordPage() {
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
               </FormField>
-              <FormField label="Confirm Password" required>
+              <FormField label="Confirm New Password" required>
                 <input
                   type="password"
                   className="input-field"
@@ -142,7 +145,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="button"
                 className="text-sm text-gray-500 hover:text-gray-700 text-center"
-                onClick={() => setStep(1)}
+                onClick={() => { setStep(1); setOtp(''); setResetError('') }}
               >
                 ← Back
               </button>

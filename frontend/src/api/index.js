@@ -39,8 +39,8 @@ export const authApi = {
   getMyProfile: () => apiClient.get('/auth/me/profile'),
   updateMyProfile: (data) => apiClient.put('/auth/me/profile', data),
   uploadPhoto: (photo_data) => apiClient.put('/auth/me/photo', { photo_data }),
-  forgotPassword: (identifier) => apiClient.post('/auth/forgot-password', { identifier }),
-  resetPassword: (identifier, otp, new_password) => apiClient.post('/auth/reset-password', { identifier, otp, new_password }),
+  forgotPassword: (email) => apiClient.post('/auth/forgot-password', { email }),
+  resetPassword: (email, otp, new_password) => apiClient.post('/auth/reset-password', { email, otp, new_password }),
   changePassword: (data) => apiClient.post('/auth/change-password', data),
   uploadAadhar: (aadhar_data) => apiClient.put('/auth/me/aadhar', { aadhar_data }),
 }

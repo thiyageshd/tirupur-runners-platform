@@ -53,11 +53,11 @@ class TokenResponse(BaseModel):
 
 
 class ForgotPasswordRequest(BaseModel):
-    identifier: str
+    email: str
 
 
 class ResetPasswordRequest(BaseModel):
-    identifier: str
+    email: str
     otp: str
     new_password: str = Field(..., min_length=8)
 
