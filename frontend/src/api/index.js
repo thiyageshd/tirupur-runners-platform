@@ -78,6 +78,7 @@ export const adminApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   getPendingUsers: () => apiClient.get('/admin/users/pending'),
+  getInactiveMembers: () => apiClient.get('/admin/users/inactive'),
   approveUser: (id) => apiClient.put(`/admin/users/${id}/approve`),
   rejectUser: (id) => apiClient.put(`/admin/users/${id}/reject`),
   deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),

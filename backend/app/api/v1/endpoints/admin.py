@@ -280,6 +280,33 @@ async def toggle_admin(
     return user
 
 
+@router.get("/users/inactive")
+async def get_inactive_members(
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    svc = MembershipService(db)
+    await svc.sync_expired_statuses()
+    result = await db.execute(
+        select(User, Membership)
+        .join(Membership, Membership.user_id == User.id)
+        .where(User.account_status == "inactive")
+        .order_by(User.full_name.asc())
+    )
+    rows = result.all()
+    return [
+        {
+            "user_id": str(u.id),
+            "full_name": u.full_name,
+            "email": u.email,
+            "phone": u.phone,
+            "year": m.year,
+            "end_date": str(m.end_date),
+        }
+        for u, m in rows
+    ]
+
+
 @router.get("/users/pending", response_model=list[PendingUserItem])
 async def get_pending_users(
     current_admin=Depends(get_current_admin),

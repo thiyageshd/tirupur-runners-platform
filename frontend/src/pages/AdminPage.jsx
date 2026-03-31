@@ -15,7 +15,7 @@ const STATUS_BADGE = {
   pending: 'bg-yellow-100 text-yellow-700',
 }
 
-const TABS = ['Members', 'Approvals', 'Offline Payments', 'SMS', 'Settings']
+const TABS = ['Members', 'Approvals', 'Inactive Members', 'Offline Payments', 'SMS', 'Settings']
 
 // Emails that can never be deleted via the admin panel
 const PROTECTED_ADMINS = ['thiyagesh.d@gmail.com']
@@ -53,6 +53,8 @@ export default function AdminPage() {
   // Approvals tab
   const [pendingUsers, setPendingUsers] = useState([])
   const [pendingLoading, setPendingLoading] = useState(false)
+  const [inactiveMembers, setInactiveMembers] = useState([])
+  const [inactiveLoading, setInactiveLoading] = useState(false)
   const [approvingUser, setApprovingUser] = useState(null)
   const [rejectingUser, setRejectingUser] = useState(null)
   const [deletingUser, setDeletingUser] = useState(null)
@@ -93,7 +95,20 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (activeTab === 'Approvals') loadPendingUsers()
+    if (activeTab === 'Inactive Members') loadInactiveMembers()
   }, [activeTab])
+
+  const loadInactiveMembers = async () => {
+    setInactiveLoading(true)
+    try {
+      const res = await adminApi.getInactiveMembers()
+      setInactiveMembers(res.data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setInactiveLoading(false)
+    }
+  }
 
   const loadPendingUsers = async () => {
     setPendingLoading(true)
@@ -197,6 +212,7 @@ export default function AdminPage() {
   }
 
   const handleDelete = async (userId) => {
+    if (!PROTECTED_ADMINS.includes(user?.email?.toLowerCase())) return
     if (!confirm('Delete this pending registration? This cannot be undone.')) return
     setDeletingUser(userId)
     try {
@@ -751,6 +767,49 @@ export default function AdminPage() {
               </div>
             )}
             {/* deleteToast moved to top-level so it shows across tabs */}
+          </div>
+        )}
+
+        {/* ── Inactive Members Tab ── */}
+        {activeTab === 'Inactive Members' && (
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-gray-900">Inactive Members</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Members who did not renew by 31 Aug of their membership year</p>
+              </div>
+              <span className="text-sm text-gray-500">{inactiveMembers.length} member{inactiveMembers.length !== 1 ? 's' : ''}</span>
+            </div>
+            {inactiveLoading ? (
+              <div className="text-center py-12 text-gray-400"><Loader2 size={24} className="animate-spin mx-auto" /></div>
+            ) : inactiveMembers.length === 0 ? (
+              <p className="text-center text-gray-400 py-12 text-sm">No inactive members</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs text-gray-500 uppercase tracking-wide">
+                      <th className="pb-3 pr-4">Name</th>
+                      <th className="pb-3 pr-4">Email</th>
+                      <th className="pb-3 pr-4">Phone</th>
+                      <th className="pb-3 pr-4">Last Membership Year</th>
+                      <th className="pb-3">Inactive Since</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {inactiveMembers.map((m) => (
+                      <tr key={m.user_id} className="hover:bg-gray-50">
+                        <td className="py-3 pr-4 font-medium text-gray-900">{m.full_name}</td>
+                        <td className="py-3 pr-4 text-gray-600">{m.email}</td>
+                        <td className="py-3 pr-4 text-gray-600">{m.phone}</td>
+                        <td className="py-3 pr-4 text-gray-600">{m.year}</td>
+                        <td className="py-3 text-gray-600">{m.end_date ? format(new Date(m.end_date), 'dd MMM yyyy') : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
