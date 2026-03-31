@@ -365,7 +365,11 @@ async def delete_user(
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    # Only allow deletion of pending registrations via the admin panel
+    # Only permitted admins can delete users
+    permitted = [e.strip().lower() for e in settings.PROTECTED_ADMIN_EMAILS.split(",")]
+    if current_admin.email.lower() not in permitted:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete users")
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:

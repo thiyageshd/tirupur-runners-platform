@@ -17,6 +17,9 @@ const STATUS_BADGE = {
 
 const TABS = ['Members', 'Approvals', 'Offline Payments', 'SMS', 'Settings']
 
+// Emails that can never be deleted via the admin panel
+const PROTECTED_ADMINS = ['thiyagesh.d@gmail.com']
+
 const SMS_TEMPLATES = {
   'Renewal Reminder': 'Hi {name}, your Tirupur Runners membership expires soon. Renew at https://tirupurrunners.in',
   'New Member Welcome': 'Welcome to Tirupur Runners, {name}! Lace up and join us every Sunday 5:30 AM at Tirupur Collectorate.',
@@ -612,7 +615,7 @@ export default function AdminPage() {
                                     ? <ShieldOff size={14} />
                                     : <Shield size={14} />}
                                 </button>
-                                {m.account_status === 'approved' && m.membership_status === 'pending' && (
+                                {m.account_status === 'approved' && m.membership_status === 'pending' && PROTECTED_ADMINS.includes(user?.email?.toLowerCase()) && (
                                   <button
                                     onClick={() => handleDelete(m.user_id)}
                                     disabled={deletingUser === m.user_id}

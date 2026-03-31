@@ -123,11 +123,36 @@ class MembershipService:
         return members
 
     async def sync_expired_statuses(self):
-        """Called lazily — marks memberships past end_date as expired."""
-        from sqlalchemy import update
+        """Called lazily on each admin members fetch.
+        - active → expired  : when end_date has passed
+        - expired → pending : when May 31 of the membership's end year has passed
+                              and member has no active renewal (any financial year)
+        """
+        from sqlalchemy import update, cast, Integer, extract
         today = date.today()
+
+        # Step 1: active → expired (end_date passed)
         await self.db.execute(
             update(Membership)
             .where(and_(Membership.status == "active", Membership.end_date < today))
             .values(status="expired")
+        )
+
+        # Step 2: expired → pending
+        # Grace deadline = 31 May of the year the membership ended (any FY)
+        # e.g. end_date 31/03/2026 → grace deadline 31/05/2026
+        #      end_date 31/03/2027 → grace deadline 31/05/2027
+        active_user_ids = select(Membership.user_id).where(Membership.status == "active")
+        end_year = cast(extract("year", Membership.end_date), Integer)
+        grace_deadline = func.make_date(end_year, 5, 31)
+        await self.db.execute(
+            update(Membership)
+            .where(
+                and_(
+                    Membership.status == "expired",
+                    grace_deadline < func.current_date(),
+                    Membership.user_id.not_in(active_user_ids),
+                )
+            )
+            .values(status="pending")
         )

@@ -27,6 +27,8 @@ class Settings(BaseSettings):
 
     # Admin
     ADMIN_EMAIL: str = "tirupurrunners@gmail.com"
+    # Comma-separated admin emails permitted to delete users
+    PROTECTED_ADMIN_EMAILS: str = "thiyagesh.d@gmail.com"
 
     # Email — Gmail SMTP — reserved for future use
     GMAIL_USER: str = "tirupurrunners@gmail.com"        # e.g. tirupurrunners@gmail.com
