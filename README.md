@@ -1,13 +1,26 @@
-# Tirupur Runners Club — Full Stack Registration Platform
+# Tirupur Runners Club — Membership Platform
 
-## Stack Summary
-| Layer      | Technology           | Hosting            | Cost       |
-|------------|---------------------|--------------------|------------|
-| Frontend   | React + Vite         | Vercel             | Free       |
-| Backend    | FastAPI (Python)     | Render             | Free tier  |
-| Database   | PostgreSQL           | Neon.tech          | Free tier  |
-| Payments   | Razorpay             | SaaS               | % per txn  |
-| Email      | SendGrid             | SaaS               | Free tier  |
+Full-stack web application for club registration, membership management, and annual renewal payments.
+
+- **Website:** https://tirupurrunners.com
+- **Dev:** https://dev.tirupurrunners.com
+- **Club contact:** tirupurrunners@gmail.com | +91 94882 52599
+- **Weekly run:** Every Sunday 5:30 AM at VOC Park, Tirupur
+
+---
+
+## Tech Stack
+
+| Layer     | Technology                       | Notes                              |
+|-----------|----------------------------------|------------------------------------|
+| Frontend  | React 18 + Vite + Tailwind CSS   | SPA, React Router v6               |
+| Backend   | FastAPI (Python 3.11, asyncio)   | REST API, JWT auth                 |
+| Database  | PostgreSQL                       | Async SQLAlchemy + asyncpg         |
+| Payments  | Razorpay                         | Orders + webhook verification      |
+| Email     | Resend API                       | 3,000 emails/month free tier       |
+| Hosting   | Hostinger KVM2 VPS (India)       | ₹649/month, migrated from Render   |
+| Domain    | tirupurrunners.com               | Managed via GoDaddy                |
+| CI/CD     | GitHub Actions                   | SSH deploy on push to dev / main   |
 
 ---
 
@@ -15,309 +28,508 @@
 
 ```
 tirupur-runners/
+├── .github/
+│   └── workflows/
+│       ├── deploy-hostinger-dev.yml    # Auto-deploy on push to dev branch
+│       └── deploy-hostinger-prod.yml   # Auto-deploy on push to main branch
+│
 ├── backend/
-│   ├── main.py                         # FastAPI app entrypoint
+│   ├── main.py                         # FastAPI app entrypoint + lifespan
 │   ├── requirements.txt
-│   ├── render.yaml                     # Render deployment config
-│   ├── .env.example                    # Copy to .env
+│   ├── .python-version                 # 3.11.9 (pins for bcrypt compatibility)
+│   ├── render.yaml                     # Render prod Blueprint (legacy)
+│   ├── render-dev.yaml                 # Render dev Blueprint (legacy)
 │   └── app/
 │       ├── core/
-│       │   ├── config.py               # Pydantic settings
-│       │   └── security.py             # JWT, password hashing
+│       │   ├── config.py               # Pydantic settings (reads .env)
+│       │   └── security.py             # JWT + bcrypt (no passlib)
 │       ├── db/
-│       │   └── session.py              # Async SQLAlchemy engine
+│       │   └── session.py              # Async engine, normalises DB URL
 │       ├── models/
-│       │   └── models.py               # ORM: User, Membership, Payment
+│       │   └── models.py               # ORM: User, Membership, Payment, MemberProfile, SiteSettings
 │       ├── schemas/
-│       │   └── schemas.py              # Pydantic request/response models
+│       │   └── schemas.py              # Pydantic request/response schemas
 │       ├── services/
-│       │   ├── user_service.py         # Auth + user business logic
-│       │   ├── membership_service.py   # Membership CRUD + status sync
+│       │   ├── user_service.py         # Registration, login, OTP
+│       │   ├── membership_service.py   # Membership CRUD + auto-expire logic
 │       │   └── payment_service.py      # Razorpay + idempotency
 │       ├── api/v1/
-│       │   ├── router.py               # Combines all routers
+│       │   ├── router.py
 │       │   └── endpoints/
-│       │       ├── auth.py             # /auth/* routes
-│       │       ├── memberships.py      # /memberships/* routes
-│       │       ├── payments.py         # /payments/* routes
-│       │       └── admin.py            # /admin/* routes
+│       │       ├── auth.py             # /auth/* (register, login, OTP, profile, password)
+│       │       ├── memberships.py      # /memberships/*
+│       │       ├── payments.py         # /payments/*
+│       │       ├── admin.py            # /admin/* (members, approvals, stats, delete)
+│       │       └── settings.py         # /settings/* (site flags)
 │       └── utils/
-│           └── email.py               # SendGrid helpers
+│           └── email.py                # Resend API helpers
 │
-└── frontend/
-    ├── index.html
-    ├── vite.config.js
-    ├── tailwind.config.js
-    ├── vercel.json
-    └── src/
-        ├── main.jsx
-        ├── App.jsx                     # Routes + ProtectedRoute
-        ├── index.css                   # Tailwind + custom classes
-        ├── api/
-        │   └── index.js               # Axios client + API methods
-        ├── store/
-        │   └── authStore.js           # Zustand auth state
-        ├── components/
-        │   ├── layout/
-        │   │   ├── Navbar.jsx
-        │   │   └── Footer.jsx
-        │   └── ui/
-        │       ├── FormField.jsx
-        │       └── MembershipBadge.jsx
-        └── pages/
-            ├── HomePage.jsx
-            ├── RegisterPage.jsx        # 3-step form + Razorpay
-            ├── LoginPage.jsx           # Password + OTP tabs
-            ├── DashboardPage.jsx       # Membership status + renew
-            ├── AdminPage.jsx           # Member table + CSV + stats
-            ├── EventsPage.jsx
-            └── StaticPages.jsx         # About + Contact
+├── frontend/
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── src/
+│       ├── api/
+│       │   └── index.js                # Axios client + all API methods
+│       ├── store/
+│       │   └── authStore.js            # Zustand: user, settings, token
+│       ├── components/
+│       │   └── layout/
+│       │       ├── Navbar.jsx          # Conditional auth buttons
+│       │       └── Footer.jsx
+│       └── pages/
+│           ├── HomePage.jsx
+│           ├── RegisterPage.jsx        # 2-step form (account + personal info)
+│           ├── LoginPage.jsx           # Password login (OTP tab disabled)
+│           ├── DashboardPage.jsx       # Profile, membership, payments, Aadhar
+│           ├── ForgotPasswordPage.jsx  # Email OTP → reset password
+│           ├── AdminPage.jsx           # Members, Approvals, Inactive, Offline Payments
+│           ├── EventsPage.jsx
+│           └── StaticPages.jsx
+│
+├── docs/
+│   └── hostinger-setup.md             # Full VPS setup guide
+│
+└── backend/scripts/
+    ├── import_members.py              # Import from Excel
+    ├── backfill_profiles.py           # Backfill MemberProfile rows
+    ├── reset_passwords.py             # Set all passwords to phone number
+    ├── assign_membership_ids.py       # Backfill membership_id column
+    ├── migrate_to_render.py           # Local → Render PostgreSQL
+    ├── migrate_to_hostinger.py        # Render/local → Hostinger PostgreSQL
+    └── migrate_dev_to_prod.py         # Dev → Prod (same platform)
 ```
 
 ---
 
-## API Reference
+## Database Schema
 
-### Auth
-| Method | Path                  | Auth | Description          |
-|--------|-----------------------|------|----------------------|
-| POST   | /api/v1/auth/register | -    | Register new user    |
-| POST   | /api/v1/auth/login    | -    | Password login       |
-| POST   | /api/v1/auth/otp/request | - | Send OTP to email    |
-| POST   | /api/v1/auth/otp/verify  | - | Verify OTP → token   |
-| GET    | /api/v1/auth/me       | JWT  | Get current user     |
+### Users
+| Column               | Type         | Notes                                     |
+|----------------------|--------------|-------------------------------------------|
+| id                   | UUID PK      |                                           |
+| full_name            | VARCHAR(200) |                                           |
+| email                | VARCHAR(255) | unique, indexed                           |
+| phone                | VARCHAR(20)  |                                           |
+| age                  | INTEGER      |                                           |
+| gender               | VARCHAR(20)  |                                           |
+| address              | VARCHAR(500) | nullable                                  |
+| emergency_contact    | VARCHAR(200) | mandatory on registration                 |
+| emergency_phone      | VARCHAR(20)  | mandatory on registration                 |
+| emergency_contact_2  | VARCHAR(200) | nullable                                  |
+| emergency_phone_2    | VARCHAR(20)  | nullable                                  |
+| account_status       | VARCHAR(20)  | `pending_approval` → `approved` → `rejected` / `inactive` |
+| t_shirt_size         | VARCHAR(10)  | nullable, set by admin                    |
+| hashed_password      | VARCHAR(255) | bcrypt, nullable (OTP-only accounts)      |
+| otp_secret           | VARCHAR(64)  | TOTP secret for OTP login / forgot-password |
+| is_admin             | BOOLEAN      |                                           |
 
 ### Memberships
-| Method | Path                        | Auth  | Description            |
-|--------|-----------------------------|-------|------------------------|
-| GET    | /api/v1/memberships/my      | JWT   | Get latest membership  |
-| GET    | /api/v1/memberships/my/active | JWT | Get active membership  |
+| Column        | Type        | Notes                               |
+|---------------|-------------|-------------------------------------|
+| id            | UUID PK     |                                     |
+| user_id       | UUID FK     | → users (CASCADE)                   |
+| membership_id | VARCHAR(20) | e.g. `202603TR01`, unique           |
+| start_date    | DATE        | Apr 1 of membership year            |
+| end_date      | DATE        | Mar 31 of following year            |
+| status        | VARCHAR(20) | `pending` → `active` → `expired` → `pending` → user `inactive` |
+| year          | INTEGER     | Financial year start (e.g. 2025 = Apr 2025–Mar 2026) |
+
+**Membership lifecycle (auto-sync on admin fetch):**
+1. `active` → `expired` when `end_date < today`
+2. `expired` → `pending` after 31 May of the end year (grace period for renewal)
+3. User `account_status` → `inactive` after 31 Aug of the end year (no active renewal)
 
 ### Payments
-| Method | Path                   | Auth  | Description                    |
-|--------|------------------------|-------|--------------------------------|
-| POST   | /api/v1/payments/order | JWT   | Create Razorpay order          |
-| POST   | /api/v1/payments/verify| JWT   | Verify payment + activate      |
-| POST   | /api/v1/payments/webhook | -   | Razorpay webhook handler       |
+| Column               | Type         | Notes                        |
+|----------------------|--------------|------------------------------|
+| razorpay_order_id    | VARCHAR(100) | unique                       |
+| razorpay_payment_id  | VARCHAR(100) | filled on success            |
+| amount_paise         | INTEGER      | ₹2000 new = 200000           |
+| status               | VARCHAR(20)  | `created` / `paid` / `failed`|
+| idempotency_key      | VARCHAR(100) | `member:{user_id}:{year}`    |
 
-### Admin (requires is_admin=true)
-| Method | Path                       | Auth        | Description        |
-|--------|----------------------------|-------------|--------------------|
-| GET    | /api/v1/admin/members      | Admin JWT   | List all members   |
-| GET    | /api/v1/admin/members/export | Admin JWT | Download CSV       |
-| GET    | /api/v1/admin/stats        | Admin JWT   | Dashboard stats    |
+### MemberProfile
+Stores extended runner profile: `blood_group`, `photo_url` (base64, max 500KB), `aadhar_url` (base64, max 2MB), `profession`, `bio`, `strava_link`.
+
+### SiteSettings
+Key-value store for site flags:
+- `show_login`, `show_register`, `show_join_club` — controlled from Admin → Settings tab
 
 ---
 
-## Deployment Guide — Step by Step
+## Pricing
 
-### Step 1: Set up PostgreSQL (Neon.tech — Free)
-
-1. Go to https://neon.tech and create a free account
-2. Create a new project: `tirupur-runners`
-3. Copy the **connection string** — it looks like:
-   ```
-   postgresql://user:pass@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
-   ```
-4. For FastAPI (asyncpg), change `postgresql://` → `postgresql+asyncpg://`
-
-### Step 2: Deploy Backend on Render (Free)
-
-1. Push backend folder to a GitHub repo
-2. Go to https://render.com → New → Web Service
-3. Connect your GitHub repo, set root directory to `backend/`
-4. Configure:
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - **Python version:** 3.11
-5. Add Environment Variables:
-   ```
-   DATABASE_URL     = postgresql+asyncpg://...  (from Neon)
-   SECRET_KEY       = (generate: python -c "import secrets; print(secrets.token_hex(32))")
-   RAZORPAY_KEY_ID  = rzp_live_xxxxxxxxxxxx
-   RAZORPAY_KEY_SECRET = your_secret
-   MEMBERSHIP_AMOUNT_PAISE = 50000
-   DEBUG            = False
-   FRONTEND_URL     = https://your-app.vercel.app
-   ```
-6. Deploy. Your API will be at: `https://tirupur-runners-api.onrender.com`
-
-> ⚠️ Render free tier spins down after 15 min inactivity. Upgrade to $7/mo Starter for always-on.
-
-### Step 3: Deploy Frontend on Vercel (Free)
-
-1. Push frontend folder to GitHub
-2. Go to https://vercel.com → New Project → Import repo
-3. Set root directory to `frontend/`
-4. Add Environment Variable:
-   ```
-   VITE_API_URL = https://tirupur-runners-api.onrender.com/api/v1
-   ```
-5. Deploy. Vercel auto-detects Vite. Your site: `https://tirupur-runners.vercel.app`
-6. Add your custom domain `tirupurrunners.com` in Vercel DNS settings
-
-### Step 4: Configure Razorpay
-
-1. Go to https://dashboard.razorpay.com
-2. Create account, complete KYC for Tirupur Runners Club
-3. Get API Keys from Settings → API Keys
-4. Set up Webhook:
-   - URL: `https://tirupur-runners-api.onrender.com/api/v1/payments/webhook`
-   - Events: `payment.captured`, `payment.failed`
-   - Copy Webhook Secret → add as `RAZORPAY_WEBHOOK_SECRET` env var
-5. Test with test keys first (rzp_test_*) before going live
-
-### Step 5: Create First Admin User
-
-After deployment, run this in your Neon SQL console:
-
-```sql
-UPDATE users
-SET is_admin = true
-WHERE email = 'your-admin@email.com';
-```
-
-Or add this to a one-time script:
-```python
-# scripts/make_admin.py
-import asyncio
-from app.db.session import AsyncSessionLocal
-from app.models.models import User
-from sqlalchemy import update
-
-async def make_admin(email: str):
-    async with AsyncSessionLocal() as db:
-        await db.execute(update(User).where(User.email == email).values(is_admin=True))
-        await db.commit()
-        print(f"Done: {email} is now admin")
-
-asyncio.run(make_admin("admin@tirupurrunners.com"))
-```
-
-### Step 6: Set Up Email (Optional but Recommended)
-
-1. Sign up at https://sendgrid.com (free tier: 100 emails/day)
-2. Verify your sender domain (`tirupurrunners.com`)
-3. Create API Key → add as `SENDGRID_API_KEY` in Render
-4. Without this, OTPs are logged to console only
+| Membership Type  | Amount     |
+|------------------|------------|
+| New member       | ₹2,000     |
+| Annual renewal   | ₹1,500     |
 
 ---
 
 ## Local Development
 
+### Prerequisites
+- Python 3.11+
+- Node.js 20+
+- PostgreSQL running locally
+
 ### Backend
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+python3.11 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env      # Edit with your values
+
+# Create .env (see Environment Variables section below)
+cp .env.example .env   # or create manually
+
 uvicorn main:app --reload
-# API: http://localhost:8000
-# Docs: http://localhost:8000/api/docs  (DEBUG=True only)
+# API:  http://localhost:8000
+# Docs: http://localhost:8000/api/docs
 ```
 
 ### Frontend
 ```bash
 cd frontend
 npm install
-# Create .env.local:
-echo "VITE_API_URL=http://localhost:8000/api/v1" > .env.local
 npm run dev
 # App: http://localhost:5173
+# API URL defaults to /api/v1 — proxied via vite.config.js to localhost:8000
+```
+
+### Environment Variables (backend `.env`)
+
+```env
+# Database
+DATABASE_URL=postgresql+asyncpg://thiyagesh@localhost:5432/tirupur_runners
+
+# JWT
+SECRET_KEY=your-long-random-secret-here
+
+# Razorpay
+RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxx
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+
+# Pricing (in paise)
+MEMBERSHIP_NEW_AMOUNT_PAISE=200000
+MEMBERSHIP_RENEWAL_AMOUNT_PAISE=150000
+
+# Email (Resend)
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+FROM_EMAIL=noreply@tirupurrunners.com
+
+# Admin
+ADMIN_EMAIL=tirupurrunners@gmail.com
+PROTECTED_ADMIN_EMAILS=thiyagesh.d@gmail.com
+
+# Frontend URL (used in email links)
+FRONTEND_URL=http://localhost:5173
+```
+
+> If `RESEND_API_KEY` is empty, emails are logged to console only (dev-safe).
+
+---
+
+## API Reference
+
+### Auth (`/api/v1/auth`)
+| Method | Path                  | Auth | Description                       |
+|--------|-----------------------|------|-----------------------------------|
+| POST   | /register             | —    | Register (creates pending_approval user) |
+| POST   | /login                | —    | Password login → JWT              |
+| POST   | /forgot-password      | —    | Send OTP to registered email      |
+| POST   | /reset-password       | —    | Verify OTP + set new password     |
+| POST   | /change-password      | JWT  | Change password (requires current)|
+| GET    | /me                   | JWT  | Get current user                  |
+| PUT    | /me                   | JWT  | Update profile fields             |
+| GET    | /me/profile           | JWT  | Get runner profile                |
+| PUT    | /me/profile           | JWT  | Update runner profile             |
+| PUT    | /me/photo             | JWT  | Upload profile photo (base64)     |
+| PUT    | /me/aadhar            | JWT  | Upload Aadhar (base64, max 2MB)   |
+
+### Memberships (`/api/v1/memberships`)
+| Method | Path       | Auth | Description                        |
+|--------|------------|------|------------------------------------|
+| GET    | /my        | JWT  | Get latest membership              |
+| GET    | /my/active | JWT  | Get active membership              |
+
+### Payments (`/api/v1/payments`)
+| Method | Path     | Auth | Description                              |
+|--------|----------|------|------------------------------------------|
+| POST   | /order   | JWT  | Create Razorpay order (new or renewal)   |
+| POST   | /verify  | JWT  | Verify payment + activate membership     |
+| GET    | /my      | JWT  | Payment history                          |
+| POST   | /webhook | —    | Razorpay webhook (HMAC-verified)         |
+
+### Admin (`/api/v1/admin`) — requires `is_admin=true`
+| Method | Path                              | Description                          |
+|--------|-----------------------------------|--------------------------------------|
+| GET    | /members                          | List all members (with status filter)|
+| GET    | /members/export                   | Download CSV                         |
+| GET    | /stats                            | Dashboard counts                     |
+| GET    | /users/pending                    | Users pending admin approval         |
+| GET    | /users/inactive                   | Users with inactive account status   |
+| PUT    | /users/{id}/approve               | Approve registration + send email    |
+| PUT    | /users/{id}/reject                | Reject registration + send email     |
+| DELETE | /users/{id}                       | Delete user (PROTECTED_ADMIN only)   |
+| PUT    | /users/{id}/toggle-admin          | Grant/revoke admin                   |
+| PUT    | /users/{id}/tshirt                | Set t-shirt size                     |
+| PUT    | /users/{id}/aadhar                | Replace Aadhar (admin)               |
+| PUT    | /memberships/{uuid}/membership-id | Set custom membership ID             |
+| POST   | /offline-payments/upload          | Bulk activate via CSV upload         |
+
+---
+
+## Third-Party Service Setup
+
+---
+
+### Razorpay
+
+1. Sign up at https://dashboard.razorpay.com
+2. Complete KYC for the club (business / NGO)
+3. **API Keys** → Settings → API Keys → Generate Key Pair
+   - Test keys: `rzp_test_...` (use for dev)
+   - Live keys: `rzp_live_...` (use for prod — requires KYC approval)
+4. **Webhook** → Settings → Webhooks → Add New
+   - URL: `https://tirupurrunners.com/api/v1/payments/webhook`
+   - Events to subscribe: `payment.captured`, `payment.failed`
+   - Copy Webhook Secret → set as `RAZORPAY_WEBHOOK_SECRET`
+5. Set env vars:
+   ```
+   RAZORPAY_KEY_ID=rzp_live_xxxxxxxxxxxx
+   RAZORPAY_KEY_SECRET=...
+   RAZORPAY_WEBHOOK_SECRET=...
+   ```
+
+> For dev VPS, use test keys. For prod VPS, use live keys.
+
+---
+
+### Resend (Email)
+
+Resend is used for all transactional emails (OTP, approval, rejection, membership confirmation).
+Render free tier blocks all SMTP ports — Resend works over HTTPS (port 443).
+
+**Free tier: 3,000 emails/month, 100/day**
+
+#### Setup Steps
+
+1. Sign up at https://resend.com
+2. Go to **Domains** → Add Domain → enter `tirupurrunners.com`
+3. Resend will show DNS records to add. Add them in **GoDaddy** (see DNS section below):
+   - **SPF** — TXT record on `@` (or merge with existing SPF)
+   - **DKIM** — TXT record (e.g. `resend._domainkey.tirupurrunners.com`)
+   - **DMARC** — TXT record on `_dmarc.tirupurrunners.com` (optional but recommended)
+4. Click **Verify** in Resend dashboard — takes a few minutes after DNS propagates
+5. Go to **API Keys** → Create API Key (full access)
+6. Set env var: `RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx`
+7. All emails are sent as `noreply@tirupurrunners.com`
+
+> Resend domain verification is required once. After that, all environments (dev, prod) can use the same API key or separate keys.
+
+---
+
+### Gmail (Reference Only)
+
+- Gmail account: `tirupurrunners@gmail.com`
+- Gmail SMTP is **not used** for transactional email — Render and most cloud hosts block outbound SMTP ports (25, 465, 587)
+- Gmail credentials (`GMAIL_USER`, `GMAIL_APP_PASSWORD`) are kept in config for future use or local SMTP testing
+- All production email goes through Resend
+
+---
+
+## Deployment
+
+### Current Architecture
+
+```
+GitHub (main branch)
+    ↓ push
+GitHub Actions
+    ↓ SSH
+Hostinger KVM2 VPS (India, prod)
+    ├── Nginx (port 80/443)
+    │   ├── /            → /var/www/tirupur-runners   (React build)
+    │   └── /api/        → proxy → uvicorn :8000
+    └── uvicorn (systemd) → FastAPI backend
+         └── PostgreSQL (local, port 5432)
 ```
 
 ---
 
-## Idempotency Design
+### Option A: Hostinger VPS (Current / New Setup)
 
-The payment system uses an `idempotency_key` (`member:{user_id}:{year}`) to prevent:
-- Duplicate memberships for the same year
-- Double-charging on payment retries
-- Webhook replay attacks
+See full guide: `docs/hostinger-setup.md`
 
-Flow:
+**GitHub Actions Secrets required:**
+
+| Secret                  | Value                                  |
+|-------------------------|----------------------------------------|
+| `HOSTINGER_DEV_HOST`    | Dev VPS IP                             |
+| `HOSTINGER_DEV_USER`    | SSH username (e.g. `deploy`)           |
+| `HOSTINGER_DEV_SSH_KEY` | Private SSH key content for dev VPS    |
+| `HOSTINGER_PROD_HOST`   | Prod VPS IP                            |
+| `HOSTINGER_PROD_USER`   | SSH username                           |
+| `HOSTINGER_PROD_SSH_KEY`| Private SSH key content for prod VPS   |
+
+**Workflow:**
+- Push to `dev` → `.github/workflows/deploy-hostinger-dev.yml` → deploys to dev VPS
+- Push to `main` → `.github/workflows/deploy-hostinger-prod.yml` → deploys to prod VPS
+
+**DNS — GoDaddy (for Hostinger):**
+
+| Type  | Name  | Value            | TTL  |
+|-------|-------|------------------|------|
+| A     | @     | `<PROD_VPS_IP>`  | 600  |
+| A     | www   | `<PROD_VPS_IP>`  | 600  |
+| A     | dev   | `<DEV_VPS_IP>`   | 600  |
+
+Steps in GoDaddy:
+1. Log in → My Products → DNS → tirupurrunners.com
+2. Delete any existing A records for `@`, `www`, `dev`
+3. Add the A records above
+4. Wait 5–30 minutes for propagation
+5. After DNS is live, run Certbot on VPS: `sudo certbot --nginx -d tirupurrunners.com -d www.tirupurrunners.com`
+
+---
+
+### Option B: Render (Legacy / Old Setup)
+
+Render was used before migrating to Hostinger. Blueprint files are kept for reference.
+
+- `render.yaml` — prod Blueprint (backend: `tirupur-runners-api`, frontend: `tirupur-runners-web`)
+- `render-dev.yaml` — dev Blueprint (services: `tirupur-runners-api-dev`, `tirupur-runners-web-dev`)
+
+**GitHub Actions Secrets for Render:**
+
+| Secret                         | Value                      |
+|--------------------------------|----------------------------|
+| `RENDER_BACKEND_DEPLOY_HOOK_PROD`  | Render deploy hook URL |
+| `RENDER_FRONTEND_DEPLOY_HOOK_PROD` | Render deploy hook URL |
+| `RENDER_BACKEND_DEPLOY_HOOK_DEV`   | Render deploy hook URL |
+| `RENDER_FRONTEND_DEPLOY_HOOK_DEV`  | Render deploy hook URL |
+
+**DNS — GoDaddy (for Render):**
+
+Render provides a CNAME target for custom domains (shown in Dashboard → Custom Domain).
+
+| Type  | Name  | Value                                    | TTL  |
+|-------|-------|------------------------------------------|------|
+| CNAME | www   | `tirupur-runners-web.onrender.com`       | 600  |
+| CNAME | dev   | `tirupur-runners-web-dev.onrender.com`   | 600  |
+
+> Render does not support root (`@`) CNAME. Use a DNS flattening provider or point `@` via an A record to Render's IP (use `ping tirupur-runners-web.onrender.com` to get it — note: not stable, may change).
+
+Steps:
+1. Render dashboard → your web service → Settings → Custom Domains → Add
+2. Enter `tirupurrunners.com` and `www.tirupurrunners.com`
+3. Add the CNAME records in GoDaddy as shown above
+4. Render auto-provisions SSL via Let's Encrypt once DNS verifies
+
+**Render Environment Variables** (set manually in dashboard — not synced from yaml):
+
 ```
+DATABASE_URL         (internal Render PostgreSQL URL)
+SECRET_KEY
+RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET
+RAZORPAY_WEBHOOK_SECRET
+RESEND_API_KEY
+FROM_EMAIL           noreply@tirupurrunners.com
+FRONTEND_URL         https://tirupurrunners.com
+ADMIN_EMAIL          tirupurrunners@gmail.com
+PROTECTED_ADMIN_EMAILS  thiyagesh.d@gmail.com
+```
+
+---
+
+## Data Migration
+
+### Render → Hostinger (or any PostgreSQL)
+
+```bash
+cd backend
+
+# Dry run first (no data written)
+SOURCE_DB_URL="postgresql://user:pass@dpg-xxx.render.com/tirupur_runners?ssl=require" \
+TARGET_DB_URL="postgresql://tirupur_runners:pass@<VPS_IP>:5432/tirupur_runners" \
+python scripts/migrate_to_hostinger.py --dry-run
+
+# Live migration
+SOURCE_DB_URL="..." TARGET_DB_URL="..." \
+python scripts/migrate_to_hostinger.py
+```
+
+Copies: `users`, `memberships`, `member_profiles`, `site_settings`
+Skips: `payments` (Razorpay data stays on Razorpay dashboard)
+Creates: All tables including `payments` (empty — new payments will fill it)
+Idempotent: Safe to re-run — duplicate rows are skipped via `ON CONFLICT DO NOTHING`
+
+---
+
+## First Admin User
+
+After deployment and migration, grant admin access via SQL:
+
+```sql
+UPDATE users SET is_admin = true WHERE email = 'thiyagesh.d@gmail.com';
+```
+
+Or using psql on the VPS:
+```bash
+sudo -u postgres psql -d tirupur_runners -c "UPDATE users SET is_admin = true WHERE email = 'thiyagesh.d@gmail.com';"
+```
+
+---
+
+## Payment Flow
+
+```
+User clicks "Pay ₹2,000"
+    ↓
 POST /payments/order
-  → check idempotency_key exists?
-     → if paid: return 409
-     → if pending: return existing order (user retries payment)
-     → if new: create Membership(pending) + Razorpay order + Payment record
+    → check idempotency_key (member:{user_id}:{year})
+    → if paid: return 409 (already paid)
+    → if pending: return existing order (retry)
+    → if new: create Membership(pending) + Razorpay order + Payment(created)
 
-POST /payments/verify  (client-side)
-  → verify HMAC signature
-  → mark payment paid (idempotent — skip if already paid)
-  → activate membership
+Razorpay checkout opens in browser
+    ↓ success
+POST /payments/verify  (client-side HMAC check)
+    → verify razorpay_signature
+    → mark Payment(paid)
+    → activate Membership(active) + assign membership_id (e.g. 202603TR01)
+    → send confirmation email
 
-POST /payments/webhook  (server-side fallback)
-  → same idempotent activation
-  → handles cases where client didn't call /verify
+POST /payments/webhook  (server-side fallback — runs even if client closed browser)
+    → same idempotent activation
 ```
 
 ---
 
-## Optional Enhancements
+## Security
 
-### WhatsApp Alerts (via Twilio)
-```python
-# app/utils/whatsapp.py
-from twilio.rest import Client
-def send_whatsapp(to: str, message: str):
-    client = Client(TWILIO_SID, TWILIO_TOKEN)
-    client.messages.create(
-        from_='whatsapp:+14155238886',
-        to=f'whatsapp:{to}',
-        body=message
-    )
-```
-
-### QR-Based Membership Validation
-```python
-# Generate QR on payment success
-import qrcode, base64, io
-def generate_member_qr(user_id: str, membership_id: str) -> str:
-    data = f"https://tirupurrunners.com/verify/{user_id}/{membership_id}"
-    img = qrcode.make(data)
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    return base64.b64encode(buf.getvalue()).decode()
-```
-
-### Renewal Reminders (Cron on Render)
-```yaml
-# Add to render.yaml
-  - type: cron
-    name: renewal-reminders
-    schedule: "0 8 * * 1"  # Every Monday 8am
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m app.jobs.send_renewal_reminders
-```
+- JWT (24h expiry), bcrypt password hashing (no passlib — raw bcrypt 4.1.3)
+- HMAC signature verification on all Razorpay webhooks
+- Idempotency keys prevent duplicate payments
+- CORS restricted to frontend domain
+- Pydantic validation on all inputs
+- Admin routes gated by `is_admin=true`
+- User delete gated by `PROTECTED_ADMIN_EMAILS` (backend 403 + frontend hidden)
+- OTP: 6-digit TOTP, 5-minute window, strict expiry (`valid_window=0`)
 
 ---
 
-## Cost Summary (Monthly)
+## Cost Summary
 
-| Service        | Free Tier Limit            | Paid Option         |
-|----------------|---------------------------|---------------------|
-| Vercel         | Unlimited (hobby)          | $20/mo pro          |
-| Render         | 750h/mo (1 service free)   | $7/mo starter       |
-| Neon           | 0.5 GB, 10h compute/mo     | $19/mo launch       |
-| SendGrid       | 100 emails/day             | $19.95/mo essentials|
-| Razorpay       | 2% per transaction         | Negotiable at volume|
+| Service         | Plan                       | Cost          |
+|-----------------|----------------------------|---------------|
+| Hostinger KVM2  | 2 vCPU, 8GB RAM, 100GB NVMe| ~₹649/month   |
+| Hostinger KVM2  | Dev VPS (same plan)        | ~₹649/month   |
+| Razorpay        | 2% per transaction         | ~₹40 per ₹2000 txn |
+| Resend          | Free tier (3,000 emails/mo)| ₹0/month      |
+| GoDaddy domain  | tirupurrunners.com renewal | ~₹800/year    |
 
-**Total for a club with ~500 members: ₹0–₹600/month** (mostly free tier)
-
----
-
-## Security Checklist
-
-- [x] JWT with expiry (24h)
-- [x] Bcrypt password hashing
-- [x] HMAC signature verification on payment
-- [x] Idempotency keys on payments
-- [x] Webhook signature validation
-- [x] CORS restricted to frontend domain
-- [x] Pydantic input validation on all endpoints
-- [x] Admin-only routes guarded separately
-- [ ] Rate limiting (add slowapi if needed)
-- [ ] HTTPS enforced (automatic via Render + Vercel)
+**Total: ~₹1,300–1,400/month** (two VPS + payment fees)

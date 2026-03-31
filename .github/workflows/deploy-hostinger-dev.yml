@@ -1,0 +1,72 @@
+name: Deploy to Hostinger (Dev)
+
+# Triggers on push to dev branch
+# Deploys to the dev VPS — https://dev.tirupurrunners.com (or VPS IP)
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "frontend/**"
+      - "backend/**"
+      - ".github/workflows/deploy-hostinger-dev.yml"
+
+jobs:
+  deploy:
+    name: Deploy dev → Hostinger Dev VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_DEV_HOST }}
+          username: ${{ secrets.HOSTINGER_DEV_USER }}
+          key: ${{ secrets.HOSTINGER_DEV_SSH_KEY }}
+          port: 22
+          timeout: 120s
+          script: |
+            set -e
+            DEPLOY_PATH="/opt/tirupur-runners"
+            BRANCH="dev"
+            NGINX_ROOT="/var/www/tirupur-runners-dev"
+            SERVICE="tirupur-runners-backend-dev"
+
+            echo "══════════════════════════════════════════"
+            echo "  Tirupur Runners — Dev Deploy"
+            echo "══════════════════════════════════════════"
+
+            # ── 1. Pull latest code ────────────────────────
+            echo "[1/4] Pulling code from $BRANCH..."
+            cd $DEPLOY_PATH
+            git fetch origin
+            git checkout $BRANCH
+            git pull origin $BRANCH
+
+            # ── 2. Build frontend ──────────────────────────
+            echo "[2/4] Building frontend..."
+            cd $DEPLOY_PATH/frontend
+            npm ci --prefer-offline --silent
+            npm run build
+
+            # Copy built files to Nginx root
+            sudo mkdir -p $NGINX_ROOT
+            sudo cp -r dist/. $NGINX_ROOT/
+            echo "  ✓ Frontend built and deployed to $NGINX_ROOT"
+
+            # ── 3. Update Python dependencies ─────────────
+            echo "[3/4] Updating Python dependencies..."
+            cd $DEPLOY_PATH/backend
+            source venv/bin/activate
+            pip install -r requirements.txt --quiet
+            deactivate
+            echo "  ✓ Dependencies updated"
+
+            # ── 4. Restart backend service ─────────────────
+            echo "[4/4] Restarting backend service..."
+            sudo systemctl restart $SERVICE
+            sudo systemctl is-active $SERVICE
+            echo "  ✓ Service restarted"
+
+            echo "══════════════════════════════════════════"
+            echo "  Dev deploy complete!"
+            echo "══════════════════════════════════════════"

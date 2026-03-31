@@ -1,5 +1,8 @@
 import csv
 import io
+import openpyxl
+import xlrd
+import logging
 import uuid as uuid_module
 from datetime import date
 from typing import Optional
@@ -15,8 +18,7 @@ from app.models.models import User, Membership, Payment, MemberProfile
 from app.core.security import get_current_admin
 from app.utils.email import send_approval_email, send_rejection_email
 from app.core.config import settings
-from fastapi import status
-import logging
+
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -113,7 +115,6 @@ def _parse_csv_rows(content: bytes) -> list[dict]:
 
 
 def _parse_xlsx_rows(content: bytes) -> list[dict]:
-    import openpyxl
     wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
     ws = wb.active
     headers = None
@@ -127,7 +128,6 @@ def _parse_xlsx_rows(content: bytes) -> list[dict]:
 
 
 def _parse_xls_rows(content: bytes) -> list[dict]:
-    import xlrd
     wb = xlrd.open_workbook(file_contents=content)
     ws = wb.sheet_by_index(0)
     headers = [str(ws.cell_value(0, c)).strip() for c in range(ws.ncols)]

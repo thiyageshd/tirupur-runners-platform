@@ -2,7 +2,10 @@
 .wrangler
 .dev.vars*
 !.dev.vars.example
-.env*
 !.env.example
 *.venv
 *.pyc
+*.DS_Store
+.DS_Store
+*dist/
+*.env*
