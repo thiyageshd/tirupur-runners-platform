@@ -247,7 +247,7 @@ async def upload_offline_payments(
 
 @router.put("/users/{user_id}/tshirt", response_model=UserResponse)
 async def update_tshirt(
-    user_id: uuid_module.UUID,
+    user_id: str,
     data: TshirtUpdateRequest,
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
@@ -263,7 +263,7 @@ async def update_tshirt(
 
 @router.put("/users/{user_id}/toggle-admin", response_model=UserResponse)
 async def toggle_admin(
-    user_id: uuid_module.UUID,
+    user_id: str,
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -336,7 +336,7 @@ async def get_pending_users(
 
 @router.put("/users/{user_id}/approve", response_model=UserResponse)
 async def approve_user(
-    user_id: uuid_module.UUID,
+    user_id: str,
     background_tasks: BackgroundTasks,
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
@@ -369,7 +369,7 @@ async def approve_user(
 
 @router.put("/users/{user_id}/reject", response_model=UserResponse)
 async def reject_user(
-    user_id: uuid_module.UUID,
+    user_id: str,
     background_tasks: BackgroundTasks,
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
@@ -388,7 +388,7 @@ async def reject_user(
 
 @router.delete("/users/{user_id}")
 async def delete_user(
-    user_id: uuid_module.UUID,
+    user_id: str,
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -433,7 +433,7 @@ async def delete_user(
 
 @router.put("/memberships/{membership_uuid}/membership-id")
 async def update_membership_id(
-    membership_uuid: uuid_module.UUID,
+    membership_uuid: str,
     data: MembershipIdUpdateRequest,
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
@@ -457,7 +457,7 @@ async def update_membership_id(
 
 @router.put("/users/{user_id}/aadhar")
 async def admin_replace_aadhar(
-    user_id: uuid_module.UUID,
+    user_id: str,
     data: AadharUploadRequest,
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),

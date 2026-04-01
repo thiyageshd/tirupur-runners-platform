@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
             text("ALTER TABLE users ADD COLUMN IF NOT EXISTS t_shirt_size VARCHAR(10)")
         )
         await conn.execute(
-            text("ALTER TABLE member_profiles ALTER COLUMN photo_url TYPE TEXT")
+            text("ALTER TABLE member_profiles MODIFY COLUMN photo_url TEXT")
         )
         await conn.execute(
             text("ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact_2 VARCHAR(200)")

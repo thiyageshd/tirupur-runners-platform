@@ -94,7 +94,7 @@ class PhotoUploadRequest(BaseModel):
 # ─── User ─────────────────────────────────────────────────────────────────────
 
 class UserResponse(BaseModel):
-    id: uuid.UUID
+    id: str
     full_name: str
     email: str
     phone: str
@@ -117,8 +117,8 @@ class UserResponse(BaseModel):
 # ─── Membership ──────────────────────────────────────────────────────────────
 
 class MembershipResponse(BaseModel):
-    id: uuid.UUID
-    user_id: uuid.UUID
+    id: str
+    user_id: str
     membership_id: Optional[str] = None
     start_date: date
     end_date: date
@@ -156,7 +156,7 @@ class WebhookPayload(BaseModel):
 # ─── Admin ───────────────────────────────────────────────────────────────────
 
 class MemberListItem(BaseModel):
-    user_id: uuid.UUID
+    user_id: str
     full_name: str
     email: str
     phone: str
@@ -213,7 +213,7 @@ class AadharUploadRequest(BaseModel):
 
 
 class PaymentHistoryItem(BaseModel):
-    id: uuid.UUID
+    id: str
     razorpay_order_id: str
     razorpay_payment_id: Optional[str] = None
     idempotency_key: str
@@ -225,7 +225,7 @@ class PaymentHistoryItem(BaseModel):
 
 
 class PendingUserItem(BaseModel):
-    id: uuid.UUID
+    id: str
     full_name: str
     email: str
     phone: str

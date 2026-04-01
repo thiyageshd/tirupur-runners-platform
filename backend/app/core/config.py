@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
 
     # Database
-    DATABASE_URL: str  # e.g. postgresql+asyncpg://user:pass@host/db
+    DATABASE_URL: str  # e.g. mysql+aiomysql://user:pass@host/db
 
     # JWT
     SECRET_KEY: str

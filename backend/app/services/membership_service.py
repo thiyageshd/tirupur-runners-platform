@@ -142,7 +142,7 @@ class MembershipService:
         end_year = cast(extract("year", Membership.end_date), Integer)
 
         # Step 2: expired → pending (after 31 May of end year, no active renewal)
-        grace_deadline = func.make_date(end_year, 5, 31)
+        grace_deadline = func.str_to_date(func.concat(end_year, '-05-31'), '%Y-%m-%d')
         await self.db.execute(
             update(Membership)
             .where(
@@ -157,7 +157,7 @@ class MembershipService:
 
         # Step 3: user account → inactive (after 31 Aug of end year, membership still pending)
         # Sets account_status = "inactive" on the User record
-        inactive_deadline = func.make_date(end_year, 8, 31)
+        inactive_deadline = func.str_to_date(func.concat(end_year, '-08-31'), '%Y-%m-%d')
         inactive_membership_user_ids = (
             select(Membership.user_id)
             .where(
