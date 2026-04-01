@@ -1,6 +1,10 @@
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+# Absolute path to backend/ regardless of working directory (needed for Passenger)
+_BACKEND_DIR = Path(__file__).parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -47,7 +51,7 @@ class Settings(BaseSettings):
         #   ENV_FILE=.env.dev uvicorn main:app --reload   → loads .env.dev
         #   ENV_FILE=.env.prod uvicorn main:app           → loads .env.prod
         #   (default)                                     → loads .env
-        env_file = os.getenv("ENV_FILE", ".env")
+        env_file = str(_BACKEND_DIR / os.getenv("ENV_FILE", ".env"))
         case_sensitive = True
 
 
