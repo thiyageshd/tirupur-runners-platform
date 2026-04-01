@@ -3,7 +3,13 @@ name: Deploy to Hostinger (Prod)
 # Triggers on push to main branch
 # Deploys to the prod VPS — https://tirupurrunners.com
 # DISABLED — Hostinger deployment paused while using Bluehost VPS
-# Re-enable by restoring the push trigger below
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - "frontend/**"
+#       - "backend/**"
+#       - ".github/workflows/deploy-hostinger-prod.yml"
 on:
   workflow_dispatch:
 
