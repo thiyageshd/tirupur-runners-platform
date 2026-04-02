@@ -16,8 +16,8 @@ _MIME_TO_EXT = {
 def _uploads_root() -> Path:
     if settings.UPLOADS_DIR:
         return Path(settings.UPLOADS_DIR)
-    # Default: <backend_dir>/uploads  (two levels up from this file)
-    return Path(__file__).parent.parent.parent.parent / "uploads"
+    # Default: <backend_dir>/uploads  (three levels up from app/core/uploads.py)
+    return Path(__file__).parent.parent.parent / "uploads"
 
 
 def save_aadhar_file(user_id: str, data_uri: str) -> str:
