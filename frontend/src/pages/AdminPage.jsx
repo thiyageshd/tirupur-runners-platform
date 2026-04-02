@@ -1164,7 +1164,7 @@ export default function AdminPage() {
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Contact & Club Info</p>
                   {[
                     { key: 'contact_email', label: 'Contact Email', type: 'email' },
-                    { key: 'contact_phone', label: 'Contact Phone', type: 'tel' },
+                    { key: 'contact_phone', label: 'Whatsapp Phone', type: 'tel' },
                     { key: 'run_location', label: 'Run Location', type: 'text' },
                     { key: 'run_day_time', label: 'Run Day & Time', type: 'text' },
                     { key: 'maps_link', label: 'Google Maps Link', type: 'url' },
