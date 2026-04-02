@@ -56,17 +56,7 @@ jobs:
 
             echo "[2b] Running DB migrations..."
             cd /var/www/tirupur-runners-platform/backend
-            .venv/bin/python -c "
-import asyncio, sys
-sys.path.insert(0, '.')
-from app.db.session import engine
-from sqlalchemy import text
-async def migrate():
-    async with engine.begin() as conn:
-        await conn.execute(text('ALTER TABLE payments ADD COLUMN IF NOT EXISTS receipt_url TEXT'))
-    print('receipt_url column ok')
-asyncio.run(migrate())
-" || echo "Migration skipped (non-fatal)"
+            .venv/bin/python scripts/migrate_db.py || echo "Migration skipped (non-fatal)"
 
             echo "[3/4] Building frontend..."
             cd /var/www/tirupur-runners-platform/frontend
