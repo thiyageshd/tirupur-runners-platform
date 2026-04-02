@@ -19,6 +19,7 @@ from app.core.security import get_current_admin
 from app.utils.email import send_approval_email, send_rejection_email
 from app.core.config import settings
 from app.core.uploads import save_aadhar_file
+from app.services.payment_service import PaymentService
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -496,6 +497,21 @@ async def update_membership_id(
     membership.membership_id = data.membership_id
     await db.flush()
     return {"membership_uuid": str(membership.id), "membership_id": membership.membership_id}
+
+
+@router.post("/users/{user_id}/sync-payment")
+async def sync_payment_status(
+    user_id: uuid_module.UUID,
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Check a member's pending Razorpay order against the Razorpay API.
+    - If the payment cleared: activates the membership.
+    - If still pending or failed: resets membership to 'expired' so the user can retry.
+    """
+    svc = PaymentService(db)
+    return await svc.sync_order_status(user_id)
 
 
 @router.put("/users/{user_id}/aadhar")

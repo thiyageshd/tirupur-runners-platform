@@ -89,6 +89,7 @@ export const adminApi = {
     apiClient.put(`/admin/memberships/${membershipUuid}/membership-id`, { membership_id }),
   replaceAadhar: (userId, aadhar_data) =>
     apiClient.put(`/admin/users/${userId}/aadhar`, { aadhar_data }),
+  syncPayment: (userId) => apiClient.post(`/admin/users/${userId}/sync-payment`),
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────

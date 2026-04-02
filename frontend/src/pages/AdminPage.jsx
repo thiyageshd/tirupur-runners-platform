@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Download, Users, TrendingUp, XCircle, Clock, Loader2,
   Crown, Shield, ShieldOff, Upload, MessageSquare, Settings, CheckCircle2,
-  Pencil, Check, X, UserCheck, UserX, FileText,
+  Pencil, Check, X, UserCheck, UserX, FileText, RefreshCw,
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { adminApi, settingsApi } from '../api'
@@ -58,6 +58,7 @@ export default function AdminPage() {
   const [approvingUser, setApprovingUser] = useState(null)
   const [rejectingUser, setRejectingUser] = useState(null)
   const [deletingUser, setDeletingUser] = useState(null)
+  const [syncingPayment, setSyncingPayment] = useState(null)
   const [deleteToast, setDeleteToast] = useState(false)
 
   // Rejected tab
@@ -277,6 +278,20 @@ export default function AdminPage() {
       alert(err.response?.data?.detail || 'Failed to delete')
     } finally {
       setDeletingUser(null)
+    }
+  }
+
+  const handleSyncPayment = async (userId, memberName) => {
+    if (!confirm(`Check Razorpay payment status for ${memberName}?\n\nIf payment cleared → membership activated.\nIf not cleared → membership reset so user can retry.`)) return
+    setSyncingPayment(userId)
+    try {
+      const res = await adminApi.syncPayment(userId)
+      alert(res.data.message)
+      await loadData()
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to sync payment status')
+    } finally {
+      setSyncingPayment(null)
     }
   }
 
@@ -655,9 +670,23 @@ export default function AdminPage() {
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[m.membership_status]}`}>
-                              {m.membership_status}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[m.membership_status]}`}>
+                                {m.membership_status}
+                              </span>
+                              {m.membership_status === 'pending' && (
+                                <button
+                                  onClick={() => handleSyncPayment(m.user_id, m.full_name)}
+                                  disabled={syncingPayment === m.user_id}
+                                  title="Check payment status with Razorpay"
+                                  className="p-1 rounded text-yellow-600 hover:bg-yellow-50 transition-colors disabled:opacity-50"
+                                >
+                                  {syncingPayment === m.user_id
+                                    ? <Loader2 size={13} className="animate-spin" />
+                                    : <RefreshCw size={13} />}
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-gray-600">{m.membership_year}</td>
                           <td className="px-4 py-3 text-gray-600 whitespace-nowrap">

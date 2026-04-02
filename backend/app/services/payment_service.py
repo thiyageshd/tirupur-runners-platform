@@ -150,6 +150,65 @@ class PaymentService:
         await self.db.flush()
         return payment
 
+    async def sync_order_status(self, user_id) -> dict:
+        """
+        Admin action: check a stuck 'created' payment against Razorpay.
+        - If Razorpay says paid/captured → activate membership.
+        - If still pending or failed → mark payment failed, reset membership to
+          'expired' so the user can initiate a fresh payment.
+        """
+        result = await self.db.execute(
+            select(Payment)
+            .where(Payment.user_id == user_id, Payment.status == "created")
+            .order_by(Payment.created_at.desc())
+        )
+        payment = result.scalar_one_or_none()
+        if not payment:
+            raise HTTPException(status_code=404, detail="No pending payment found for this user")
+
+        try:
+            rz_order = self.rz.order.fetch(payment.razorpay_order_id)
+        except Exception:
+            raise HTTPException(status_code=502, detail="Could not reach Razorpay. Try again.")
+
+        order_status = rz_order.get("status")  # created | attempted | paid
+
+        if order_status == "paid":
+            # Payment cleared on Razorpay — fetch captured payment_id
+            try:
+                rz_payments = self.rz.order.payments(payment.razorpay_order_id)
+                captured = next(
+                    (p for p in rz_payments.get("items", []) if p["status"] == "captured"),
+                    None,
+                )
+                if captured:
+                    payment.razorpay_payment_id = captured["id"]
+            except Exception:
+                pass
+
+            payment.status = "paid"
+            if payment.membership_id:
+                membership_svc = MembershipService(self.db)
+                await membership_svc.activate_membership(payment.membership_id)
+            await self.db.flush()
+            return {"result": "activated", "message": "Payment confirmed. Membership activated."}
+
+        else:
+            # Still pending or failed — reset so user can retry
+            payment.status = "failed"
+            if payment.membership_id:
+                mem_result = await self.db.execute(
+                    select(Membership).where(Membership.id == payment.membership_id)
+                )
+                membership = mem_result.scalar_one_or_none()
+                if membership:
+                    membership.status = "expired"
+            await self.db.flush()
+            return {
+                "result": "reset",
+                "message": f"Payment not cleared (Razorpay: {order_status}). Membership reset — user can retry.",
+            }
+
     async def handle_webhook(self, event: str, payload: dict) -> dict:
         """
         Razorpay webhook handler — idempotent.
