@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 
 export default function Footer() {
-  const { user } = useAuthStore()
+  const { user, settings } = useAuthStore()
   return (
     <footer className="bg-gray-900 text-gray-400 mt-24">
       <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -13,9 +13,39 @@ export default function Footer() {
             </div>
             <span className="text-white font-display font-bold">Tirupur Runners</span>
           </div>
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed mb-4">
             Building a stronger running community in Tirupur, Tamil Nadu since 2013.
           </p>
+          <ul className="space-y-1.5 text-sm">
+            {settings?.contact_phone && (
+              <li>
+                <a href={`tel:${settings.contact_phone}`} className="hover:text-white transition-colors">
+                  📞 {settings.contact_phone}
+                </a>
+              </li>
+            )}
+            {settings?.contact_email && (
+              <li>
+                <a href={`mailto:${settings.contact_email}`} className="hover:text-white transition-colors">
+                  ✉ {settings.contact_email}
+                </a>
+              </li>
+            )}
+            {settings?.run_day_time && (
+              <li>🏃 {settings.run_day_time}</li>
+            )}
+            {settings?.run_location && (
+              <li>
+                {settings?.maps_link ? (
+                  <a href={settings.maps_link} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                    📍 {settings.run_location}
+                  </a>
+                ) : (
+                  <span>📍 {settings.run_location}</span>
+                )}
+              </li>
+            )}
+          </ul>
         </div>
 
         <div>
