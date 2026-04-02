@@ -91,9 +91,11 @@ export default function RegisterPage() {
     }
     setLoading(true)
     setError('')
+    let userCreated = false
     try {
       // 1. Register user
       await authApi.register(data)
+      userCreated = true
 
       // 2. Get temp token for uploads only — do NOT store in auth state (no auto-login)
       const loginRes = await authApi.login({ identifier: data.email, password: data.password })
@@ -118,7 +120,12 @@ export default function RegisterPage() {
 
       setSuccess(true)
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Registration failed')
+      if (userCreated) {
+        // Account created but Aadhar upload failed — treat as success, user can upload from dashboard
+        setSuccess(true)
+      } else {
+        setError(err.response?.data?.detail || err.message || 'Registration failed')
+      }
     } finally {
       setLoading(false)
     }
@@ -135,6 +142,7 @@ export default function RegisterPage() {
           <p className="text-gray-600 mb-2">Your registration is <strong>pending admin approval</strong>.</p>
           <p className="text-gray-500 text-sm mb-6">
             You will receive an email once your registration is reviewed. After approval, you can log in and complete your membership payment.
+            If your Aadhar document was not uploaded, you can do so from your dashboard after logging in.
           </p>
           <Link to="/members/login" className="btn-primary inline-block">
             Go to Login
