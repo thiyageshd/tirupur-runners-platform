@@ -12,6 +12,7 @@ jobs:
   deploy:
     name: Deploy dev → Bluehost VPS
     runs-on: ubuntu-latest
+    environment: dev
 
     steps:
       - name: Checkout code
@@ -33,9 +34,9 @@ jobs:
       - name: Copy frontend dist to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.BLUEHOST_DEV_HOST }}
-          username: ${{ secrets.BLUEHOST_DEV_USER }}
-          key: ${{ secrets.BLUEHOST_DEV_SSH_KEY }}
+          host: ${{ secrets.BLUEHOST_HOST }}
+          username: ${{ secrets.BLUEHOST_USER }}
+          key: ${{ secrets.BLUEHOST_SSH_KEY }}
           port: 22
           source: "frontend/dist"
           target: "/var/www/tirupur-runners-platform/frontend/"
@@ -44,9 +45,9 @@ jobs:
       - name: Deploy backend via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.BLUEHOST_DEV_HOST }}
-          username: ${{ secrets.BLUEHOST_DEV_USER }}
-          key: ${{ secrets.BLUEHOST_DEV_SSH_KEY }}
+          host: ${{ secrets.BLUEHOST_HOST }}
+          username: ${{ secrets.BLUEHOST_USER }}
+          key: ${{ secrets.BLUEHOST_SSH_KEY }}
           port: 22
           timeout: 120s
           script: |
@@ -56,13 +57,13 @@ jobs:
             git reset --hard origin/dev
 
             cat > /var/www/tirupur-runners-platform/backend/.env << 'EOF'
-            DATABASE_URL=${{ secrets.BLUEHOST_DEV_DATABASE_URL }}
-            SECRET_KEY=${{ secrets.BLUEHOST_DEV_SECRET_KEY }}
-            RAZORPAY_KEY_ID=${{ secrets.BLUEHOST_DEV_RAZORPAY_KEY_ID }}
-            RAZORPAY_KEY_SECRET=${{ secrets.BLUEHOST_DEV_RAZORPAY_KEY_SECRET }}
-            RAZORPAY_WEBHOOK_SECRET=${{ secrets.BLUEHOST_DEV_RAZORPAY_WEBHOOK_SECRET }}
-            GMAIL_USER=${{ secrets.BLUEHOST_DEV_GMAIL_USER }}
-            GMAIL_APP_PASSWORD=${{ secrets.BLUEHOST_DEV_GMAIL_APP_PASSWORD }}
+            DATABASE_URL=${{ secrets.BLUEHOST_DATABASE_URL }}
+            SECRET_KEY=${{ secrets.BLUEHOST_SECRET_KEY }}
+            RAZORPAY_KEY_ID=${{ secrets.BLUEHOST_RAZORPAY_KEY_ID }}
+            RAZORPAY_KEY_SECRET=${{ secrets.BLUEHOST_RAZORPAY_KEY_SECRET }}
+            RAZORPAY_WEBHOOK_SECRET=${{ secrets.BLUEHOST_RAZORPAY_WEBHOOK_SECRET }}
+            GMAIL_USER=${{ secrets.BLUEHOST_GMAIL_USER }}
+            GMAIL_APP_PASSWORD=${{ secrets.BLUEHOST_GMAIL_APP_PASSWORD }}
             FRONTEND_URL=https://dev.tirupurrunners.com
             DEBUG=False
             EOF
