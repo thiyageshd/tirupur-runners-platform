@@ -442,15 +442,15 @@ export default function AdminPage() {
 
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-6">
             {STAT_CARDS.map(({ label, value, icon: Icon, color, bg }) => (
-              <div key={label} className="card flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center`}>
-                  <Icon size={18} className={color} />
+              <div key={label} className="card !p-3 flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg ${bg} flex-shrink-0 flex items-center justify-center`}>
+                  <Icon size={15} className={color} />
                 </div>
-                <div>
-                  <p className="font-bold text-xl text-gray-900">{value}</p>
-                  <p className="text-xs text-gray-500">{label}</p>
+                <div className="min-w-0">
+                  <p className="font-bold text-lg text-gray-900 leading-tight">{value}</p>
+                  <p className="text-xs text-gray-500 truncate">{label}</p>
                 </div>
               </div>
             ))}
