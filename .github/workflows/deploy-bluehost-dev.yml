@@ -47,6 +47,7 @@ jobs:
             PROTECTED_ADMIN_EMAILS=thiyagesh.d@gmail.com
             DEBUG=False
             MEDIA_BASE_URL=https://dev.tirupurrunners.com
+            PAYMENT_TEST_AMOUNT_PAISE=100
             EOF
 
             echo "[2/4] Updating Python dependencies..."

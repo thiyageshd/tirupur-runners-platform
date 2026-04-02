@@ -76,6 +76,9 @@ class PaymentService:
             if is_renewal
             else settings.MEMBERSHIP_NEW_AMOUNT_PAISE
         )
+        # Override with test amount if set (e.g. 100 paise = ₹1 for live payment testing)
+        if settings.PAYMENT_TEST_AMOUNT_PAISE > 0:
+            amount_paise = settings.PAYMENT_TEST_AMOUNT_PAISE
 
         # Create pending membership first
         membership_svc = MembershipService(self.db)
