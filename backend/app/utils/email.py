@@ -81,7 +81,7 @@ async def send_approval_email(to_email: str, name: str, login_url: str):
               Login &amp; Pay Now
             </a>
           </p>
-          <p style="color:#666">Join us every <strong>Sunday at 5:30 AM</strong> at VOC Park for the weekly run!</p>
+          <p style="color:#666">Join us every <strong>Sunday at 5:30 AM</strong> at Tirupur Collectorate for the weekly run!</p>
           <hr style="border:none;border-top:1px solid #eee">
           <p style="color:#999;font-size:12px">Questions? Email tirupurrunners@gmail.com or call +91 94882 52599</p>
         </div>

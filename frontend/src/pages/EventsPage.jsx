@@ -2,15 +2,15 @@ import { Calendar, MapPin, Clock, ArrowRight, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 
-const MAPS_URL = 'https://maps.google.com/?q=Tirupur+Collectorate,Tirupur,Tamil+Nadu'
-
+const COLLECTORATE_MAPS_URL = 'https://maps.google.com/?q=Tirupur+Collectorate,Tirupur,Tamil+Nadu'
+const ALAGUMALAI_MAPS_URL = 'https://maps.google.com/?q=Alagumalai+Hills,Tirupur,Tamil+Nadu'
 const EVENTS = [
   {
     title: 'Sunday Morning Run',
     date: 'Every Sunday',
     time: '5:30 AM',
     location: 'Tirupur Collectorate',
-    mapsUrl: MAPS_URL,
+    mapsUrl: COLLECTORATE_MAPS_URL,
     category: 'Weekly',
     desc: 'Our flagship weekly run. All paces welcome — 5K, 10K, or custom routes.',
     color: 'brand',
@@ -29,7 +29,8 @@ const EVENTS = [
     title: 'Trail Running Weekend',
     date: 'Quarterly',
     time: '5:00 AM',
-    location: 'Anaimalai Hills',
+    location: 'Alagumalai Hills',
+    mapsUrl: ALAGUMALAI_MAPS_URL,
     category: 'Trail',
     desc: 'Escape the city. Scenic trail runs with experienced guides in the Western Ghats.',
     color: 'amber',

@@ -12,7 +12,7 @@ const STATS = [
 const FEATURES = [
   {
     title: 'Weekly Group Runs',
-    desc: 'Join our 5am runs every Sunday at VOC Park. Beginners to ultrarunners welcome.',
+    desc: 'Join our 5am runs every Sunday at Tirupur Collectorate. Beginners to ultrarunners welcome.',
     emoji: '🏃',
   },
   {

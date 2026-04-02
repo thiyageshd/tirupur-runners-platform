@@ -89,11 +89,16 @@ async def get_stats(
         select(func.count()).select_from(User).where(User.account_status == "approved")
     )
 
+    active_user_ids = select(Membership.user_id).where(Membership.status == "active")
+
     active_count = await db.scalar(
         select(func.count(func.distinct(Membership.user_id))).where(Membership.status == "active")
     )
     expired_count = await db.scalar(
-        select(func.count(func.distinct(Membership.user_id))).where(Membership.status == "expired")
+        select(func.count(func.distinct(Membership.user_id))).where(
+            Membership.status == "expired",
+            Membership.user_id.not_in(active_user_ids),
+        )
     )
     total_revenue = await db.scalar(
         select(func.coalesce(func.sum(Payment.amount_paise), 0))
