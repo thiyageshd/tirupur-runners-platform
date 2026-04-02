@@ -6,7 +6,7 @@ const STATS = [
   { icon: Users, value: '250+', label: 'Active Members' },
   { icon: Calendar, value: '52+', label: 'Weekly Runs' },
   { icon: MapPin, value: '12+', label: 'Years Running' },
-  { icon: Trophy, value: '3500+', label: 'Marathon Finishers' },
+  { icon: Trophy, value: '3500+', label: 'Marathon Finishes' },
 ]
 
 const FEATURES = [
@@ -17,7 +17,7 @@ const FEATURES = [
   },
   {
     title: 'Annual Marathon',
-    desc: 'Toplight Tirupur Runners Marathon — next edition coming soon. Watch this space.',
+    desc: 'Toplight Tirupur Runners Marathon powered by Techno Sport — next edition coming soon. Watch this space.',
     emoji: '🏅',
   },
   {
@@ -27,7 +27,7 @@ const FEATURES = [
   },
   {
     title: 'Runner Safety',
-    desc: 'Emergency contacts, first aid coverage, and a buddy system on all long runs.',
+    desc: 'First aid coverage, and a buddy system on all long runs.',
     emoji: '🛡️',
   },
 ]
@@ -54,7 +54,7 @@ export default function HomePage() {
               Run Together.
             </h1>
             <p className="text-brand-100 text-base md:text-lg mb-8 leading-relaxed">
-              Join Tirupur's most vibrant running club — established 2013. From your first 5K
+              Join Tirupur's vibrant running club — established 2013. From your first 5K
               to your marathon PR, we run every stride as a community.
             </p>
             <div className="flex flex-wrap gap-3">
@@ -74,7 +74,7 @@ export default function HomePage() {
             <div className="relative rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white/20">
               <img
                 src="https://racemart.in/storage/poster/poster-1748432314814.png"
-                alt="Toplight Tirupur Runners Marathon — Coming Soon"
+                alt="Toplight Tirupur Runners Marathon powered by Techno Sport — Coming Soon"
                 className="w-full h-auto block"
                 onError={(e) => {
                   e.target.parentElement.innerHTML = `

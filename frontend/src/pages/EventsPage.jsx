@@ -16,12 +16,13 @@ const EVENTS = [
     color: 'brand',
   },
   {
-    title: 'Toplight Tirupur Runners Marathon',
+    title: 'Toplight Tirupur Runners Marathon powered by Techno Sport',
     date: 'Date TBA — Stay Tuned!',
     time: '5:00 AM',
     location: 'Tirupur City Circuit',
     category: 'Marathon',
-    desc: 'Annual flagship event with 5K, 10K & 21K categories. 3500+ runners expected. Register at toplighttirupurrunnersmarathon.com — Something big is coming to Tirupur. Watch this space.',
+  desc: `Annual flagship event with 5K, 10K & 21K categories. 6000+ runners expected.
+          Register at toplighttirupurrunnersmarathon.com — Watch this space.`,
     color: 'purple',
     dateTba: true,
   },
@@ -82,7 +83,11 @@ export default function EventsPage() {
                   )}
                 </div>
                 <h3 className="font-display font-bold text-xl text-gray-900 mb-2">{event.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">{event.desc}</p>
+                <div className="mb-4">
+                  {event.desc.split('\n').map((line, idx) => (
+                    <p key={idx} className="text-gray-600 text-sm leading-relaxed mb-1 last:mb-0">{line}</p>
+                  ))}
+                </div>
                 <div className="flex flex-wrap gap-4 text-sm text-gray-500">
                   <span className={`flex items-center gap-1.5 ${event.dateTba ? 'text-gray-400 italic' : ''}`}>
                     <Calendar size={14} /> {event.date}

@@ -158,7 +158,7 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="font-display font-bold text-3xl text-gray-900 mb-2">Join Tirupur Runners</h1>
-          <p className="text-gray-500 text-sm">Register free — membership payment after admin approval</p>
+          <p className="text-gray-500 text-sm">Membership payment after admin approval</p>
         </div>
 
         {/* Step indicator */}
