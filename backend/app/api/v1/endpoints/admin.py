@@ -307,6 +307,33 @@ async def get_inactive_members(
     ]
 
 
+@router.get("/users/rejected", response_model=list[PendingUserItem])
+async def get_rejected_users(
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(User)
+        .where(User.account_status == "rejected")
+        .order_by(User.created_at.desc())
+    )
+    users = result.scalars().all()
+    return [
+        PendingUserItem(
+            id=u.id,
+            full_name=u.full_name,
+            email=u.email,
+            phone=u.phone,
+            age=u.age,
+            gender=u.gender,
+            t_shirt_size=u.t_shirt_size,
+            created_at=u.created_at,
+            aadhar_url=u.profile.aadhar_url if u.profile else None,
+        )
+        for u in users
+    ]
+
+
 @router.get("/users/pending", response_model=list[PendingUserItem])
 async def get_pending_users(
     current_admin=Depends(get_current_admin),

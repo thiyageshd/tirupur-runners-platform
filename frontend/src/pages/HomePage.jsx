@@ -34,7 +34,8 @@ const FEATURES = [
 
 export default function HomePage() {
   const { settings, user } = useAuthStore()
-  const showJoin = !user && settings?.show_join_club !== 'false'
+  // Temporarily disabled — re-enable by removing the `false &&` below
+  const showJoin = false && !user && settings?.show_join_club !== 'false'
 
   return (
     <div className="pt-16">

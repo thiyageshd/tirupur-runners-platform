@@ -17,6 +17,25 @@ from app.utils.email import send_otp_email
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+@router.get("/check-email")
+async def check_email(email: str, db: AsyncSession = Depends(get_db)):
+    svc = UserService(db)
+    user = await svc.get_by_email(email.lower().strip())
+    if user:
+        raise HTTPException(status_code=409, detail="Email already registered")
+    return {"available": True}
+
+
+@router.get("/check-phone")
+async def check_phone(phone: str, db: AsyncSession = Depends(get_db)):
+    digits = phone.replace("+91", "").replace(" ", "").replace("-", "")[-10:]
+    svc = UserService(db)
+    user = await svc.get_by_phone(digits)
+    if user:
+        raise HTTPException(status_code=409, detail="Phone number already registered")
+    return {"available": True}
+
+
 @router.post("/register", response_model=UserResponse, status_code=201)
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     svc = UserService(db)

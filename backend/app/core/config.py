@@ -31,10 +31,10 @@ class Settings(BaseSettings):
     PROTECTED_ADMIN_EMAILS: str = "thiyagesh.d@gmail.com"
 
     # Email — Gmail SMTP — reserved for future use
-    GMAIL_USER: str = "tirupurrunners@gmail.com"        # e.g. tirupurrunners@gmail.com
-    GMAIL_APP_PASSWORD: str = "ylzzpldrdptecljc"  # 16-char Google App Password
+    GMAIL_USER: str = ""
+    GMAIL_APP_PASSWORD: str = ""
     FROM_EMAIL: str = "noreply@tirupurrunners.com"
-    RESEND_API_KEY: str = "re_Bw22ZR6j_LaP2gjM7xwSA1xyiZxw8ecxr"
+    RESEND_API_KEY: str = ""
 
     # CORS + Email links (override per environment)
     # localhost:  http://localhost:5173

@@ -36,9 +36,15 @@ jobs:
             RAZORPAY_KEY_ID=${{ secrets.BLUEHOST_RAZORPAY_KEY_ID }}
             RAZORPAY_KEY_SECRET=${{ secrets.BLUEHOST_RAZORPAY_KEY_SECRET }}
             RAZORPAY_WEBHOOK_SECRET=${{ secrets.BLUEHOST_RAZORPAY_WEBHOOK_SECRET }}
+            RESEND_API_KEY=${{ secrets.BLUEHOST_RESEND_API_KEY }}
             GMAIL_USER=${{ secrets.BLUEHOST_GMAIL_USER }}
             GMAIL_APP_PASSWORD=${{ secrets.BLUEHOST_GMAIL_APP_PASSWORD }}
+            FROM_EMAIL=noreply@tirupurrunners.com
             FRONTEND_URL=https://dev.tirupurrunners.com
+            MEMBERSHIP_AMOUNT_PAISE=200000
+            MEMBERSHIP_NEW_AMOUNT_PAISE=200000
+            MEMBERSHIP_RENEWAL_AMOUNT_PAISE=150000
+            PROTECTED_ADMIN_EMAILS=thiyagesh.d@gmail.com
             DEBUG=False
             EOF
 
