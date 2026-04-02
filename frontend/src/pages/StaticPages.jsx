@@ -32,7 +32,7 @@ export function AboutPage() {
           <div className="w-60 rounded-2xl overflow-hidden shadow-lg ring-1 ring-gray-100">
             <img
               src="https://racemart.in/storage/poster/poster-1748432314814.png"
-              alt="Toplight Tirupur Runners Marathon"
+              alt="Toplight Tirupur Runners Marathon powered by Techno Sport — Coming Soon"
               className="w-full h-auto block"
               onError={(e) => { e.target.parentElement.style.display = 'none' }}
             />
@@ -44,7 +44,7 @@ export function AboutPage() {
             { emoji: '🌅', title: 'Our Mission', desc: 'Inspire the city to lace up, show up, and run together — promoting health, fitness, and community spirit across Tirupur and Tamil Nadu.' },
             { emoji: '🤝', title: 'Community First', desc: 'Over 250 active runners. Every runner matters — from first-timers to ultramarathoners. We train and grow together as one community.' },
             { emoji: '🏙️', title: 'Rooted in Tirupur', desc: "Proud to represent Tirupur — India's knitwear capital — on the national running map since 2013." },
-            { emoji: '🏆', title: 'Toplight Marathon', desc: 'We organize the Toplight Tirupur Runners Marathon — a beloved Tamil Nadu event drawing 3500+ runners. Next edition: Coming Soon.' },
+            { emoji: '🏆', title: 'Tirupur Runners Marathon', desc: 'We organize the Toplight Tirupur Runners Marathon powered by Techno Sport — a beloved Tamil Nadu event drawing 6000+ runners. Next edition: Coming Soon.' },
           ].map((item) => (
             <div key={item.title} className="card flex gap-4">
               <span className="text-3xl">{item.emoji}</span>
