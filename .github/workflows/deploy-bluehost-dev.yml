@@ -54,10 +54,6 @@ jobs:
             cd /var/www/tirupur-runners-platform/backend
             .venv/bin/pip install -r requirements.txt --quiet
 
-            echo "[2b] Running DB migrations..."
-            cd /var/www/tirupur-runners-platform/backend
-            .venv/bin/python scripts/migrate_db.py || echo "Migration skipped (non-fatal)"
-
             echo "[3/4] Building frontend..."
             cd /var/www/tirupur-runners-platform/frontend
             npm ci --prefer-offline --silent
