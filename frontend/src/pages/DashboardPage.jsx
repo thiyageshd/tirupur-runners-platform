@@ -166,6 +166,12 @@ export default function DashboardPage() {
   }
 
   const openReceipt = (payment) => {
+    // Use server-generated receipt if available
+    if (payment.receipt_url) {
+      window.open(payment.receipt_url, '_blank')
+      return
+    }
+    // Fallback: generate inline (for older payments without receipt_url)
     const yearStr = payment.idempotency_key?.split(':').pop() || ''
     const yearNum = parseInt(yearStr, 10)
     const fyLabel = yearNum ? `FY ${yearNum}–${String(yearNum + 1).slice(-2)}` : '—'
@@ -388,7 +394,7 @@ export default function DashboardPage() {
               {/* Profile photo */}
               <div className="flex flex-col items-center gap-2">
                 <div className="relative w-24 h-24">
-                  {memberProfile?.photo_url?.startsWith('data:image/') ? (
+                  {memberProfile?.photo_url ? (
                     <img
                       src={memberProfile.photo_url}
                       alt={user?.full_name}

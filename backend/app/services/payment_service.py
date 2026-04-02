@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException
 
-from app.models.models import Payment, Membership
+from app.models.models import Payment, Membership, User
 from app.core.config import settings
 from app.services.membership_service import MembershipService
 
@@ -153,6 +153,7 @@ class PaymentService:
             membership_svc = MembershipService(self.db)
             await membership_svc.activate_membership(payment.membership_id)
 
+        await self._save_receipt_for_payment(payment)
         await self.db.flush()
         return payment
 
@@ -191,6 +192,7 @@ class PaymentService:
                     if payment.membership_id:
                         membership_svc = MembershipService(self.db)
                         await membership_svc.activate_membership(payment.membership_id)
+                    await self._save_receipt_for_payment(payment)
                     logger.info(f"Auto-activated membership for payment {payment.id}")
 
                 elif order_status == "attempted":
@@ -217,6 +219,69 @@ class PaymentService:
                 await self.db.flush()
             except Exception as exc:
                 logger.warning(f"sync_stale_payments flush error: {exc}")
+
+    def _make_receipt_html(self, payment: Payment, user) -> str:
+        year_str = payment.idempotency_key.split(":")[-1] if payment.idempotency_key else ""
+        try:
+            year_num = int(year_str)
+            fy_label = f"FY {year_num}\u2013{str(year_num + 1)[-2:]}"
+        except (ValueError, TypeError):
+            fy_label = "\u2014"
+        is_offline = bool(payment.idempotency_key and payment.idempotency_key.startswith("offline:"))
+        amount_str = f"\u20b9{payment.amount_paise // 100:,}"
+        pay_ref = payment.razorpay_payment_id or payment.razorpay_order_id or "\u2014"
+        pay_date = payment.created_at.strftime("%d %b %Y") if payment.created_at else "\u2014"
+        member_name = user.full_name if user else ""
+        member_email = user.email if user else ""
+        member_phone = user.phone if user else ""
+        offline_label = " (Offline)" if is_offline else ""
+        return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Receipt \u2013 Tirupur Runners Club</title>
+<style>
+  body{{font-family:sans-serif;max-width:480px;margin:48px auto;padding:24px;color:#111}}
+  h2{{color:#16a34a;margin:0 0 2px}}
+  .sub{{color:#888;font-size:13px;margin-bottom:28px}}
+  table{{width:100%;border-collapse:collapse}}
+  td{{padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:14px;vertical-align:top}}
+  td:first-child{{color:#888;width:38%}}
+  td:last-child{{font-weight:500;word-break:break-all}}
+  .amount{{font-size:20px;font-weight:700;color:#16a34a}}
+  .badge{{display:inline-block;background:#dcfce7;color:#15803d;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600}}
+  .footer{{margin-top:28px;font-size:11px;color:#bbb;text-align:center;border-top:1px solid #f0f0f0;padding-top:16px}}
+  .print-btn{{margin-top:20px;padding:8px 20px;background:#16a34a;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px}}
+  @media print{{.print-btn{{display:none}}}}
+</style></head><body>
+<h2>Tirupur Runners Club</h2>
+<p class="sub">Membership Payment Receipt</p>
+<table>
+  <tr><td>Member</td><td>{member_name}</td></tr>
+  <tr><td>Email</td><td>{member_email}</td></tr>
+  <tr><td>Phone</td><td>{member_phone}</td></tr>
+  <tr><td>Membership</td><td>{fy_label}{offline_label}</td></tr>
+  <tr><td>Payment Ref</td><td>{pay_ref}</td></tr>
+  <tr><td>Date</td><td>{pay_date}</td></tr>
+  <tr><td>Status</td><td><span class="badge">Paid</span></td></tr>
+  <tr><td>Amount</td><td class="amount">{amount_str}</td></tr>
+</table>
+<button class="print-btn" onclick="window.print()">Print Receipt</button>
+<p class="footer">Tirupur Runners Club &middot; tirupurrunners@gmail.com &middot; +91 94882 52599</p>
+</body></html>"""
+
+    async def _save_receipt_for_payment(self, payment: Payment) -> None:
+        """Generate receipt HTML, save to disk, set payment.receipt_url. Never raises."""
+        try:
+            from app.core.uploads import save_receipt_file
+            user_result = await self.db.execute(select(User).where(User.id == payment.user_id))
+            user = user_result.scalar_one_or_none()
+            year_str = payment.idempotency_key.split(":")[-1] if payment.idempotency_key else ""
+            try:
+                year = int(year_str)
+            except (ValueError, TypeError):
+                year = datetime.now(timezone.utc).year
+            html = self._make_receipt_html(payment, user)
+            payment.receipt_url = save_receipt_file(str(payment.id), year, html)
+        except Exception as exc:
+            logger.warning(f"_save_receipt_for_payment: {exc}")
 
     async def _reset_membership(self, payment: Payment) -> None:
         """Set the linked membership back to 'expired' so the user can retry payment."""
@@ -269,6 +334,7 @@ class PaymentService:
             if payment.membership_id:
                 membership_svc = MembershipService(self.db)
                 await membership_svc.activate_membership(payment.membership_id)
+            await self._save_receipt_for_payment(payment)
             await self.db.flush()
             return {"result": "activated", "message": "Payment confirmed. Membership activated."}
 
@@ -340,6 +406,7 @@ class PaymentService:
                 if payment.membership_id:
                     membership_svc = MembershipService(self.db)
                     await membership_svc.activate_membership(payment.membership_id)
+                await self._save_receipt_for_payment(payment)
                 await self.db.flush()
 
         return {"status": "ok"}

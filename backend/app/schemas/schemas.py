@@ -220,6 +220,7 @@ class PaymentHistoryItem(BaseModel):
     idempotency_key: str
     amount_paise: int
     status: str
+    receipt_url: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
