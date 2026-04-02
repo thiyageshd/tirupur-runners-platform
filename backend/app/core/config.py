@@ -42,6 +42,14 @@ class Settings(BaseSettings):
     # prod:       https://tirupurrunners.com
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # File uploads — Aadhar and other documents
+    # UPLOADS_DIR: absolute path to uploads folder; defaults to {backend_dir}/uploads
+    UPLOADS_DIR: str = ""
+    # MEDIA_BASE_URL: base URL under which /uploads/ is served
+    # Local:  http://localhost:8000   (FastAPI StaticFiles)
+    # VPS:    https://dev.tirupurrunners.com  (Nginx serves /uploads/ directly)
+    MEDIA_BASE_URL: str = "http://localhost:8000"
+
     class Config:
         # Allow selecting env file via ENV_FILE env var:
         #   ENV_FILE=.env.dev uvicorn main:app --reload   → loads .env.dev

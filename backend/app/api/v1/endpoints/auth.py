@@ -12,6 +12,7 @@ from app.schemas.schemas import (
 )
 from app.services.user_service import UserService
 from app.core.security import get_current_user, hash_password, verify_password
+from app.core.uploads import save_aadhar_file
 from app.utils.email import send_otp_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -154,7 +155,7 @@ async def upload_aadhar(
         raise HTTPException(status_code=400, detail="File too large. Maximum size is 2MB.")
     svc = UserService(db)
     profile = await svc.get_or_create_profile(current_user.id)
-    profile.aadhar_url = data.aadhar_data
+    profile.aadhar_url = save_aadhar_file(str(current_user.id), data.aadhar_data)
     await db.flush()
     return profile
 

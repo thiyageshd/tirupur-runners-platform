@@ -210,21 +210,27 @@ export default function AdminPage() {
     }
   }
 
-  const openAadhar = (aadharUrl, name) => {
-    // Convert base64 data URI to blob URL so the browser can display it
+  const openAadhar = (aadharUrl) => {
+    if (!aadharUrl.startsWith('data:')) {
+      // New: file URL — open directly
+      window.open(aadharUrl, '_blank')
+      return
+    }
+    // Legacy: base64 data URI → convert to blob URL
     try {
       const arr = aadharUrl.split(',')
       const mime = arr[0].match(/:(.*?);/)[1]
       const bstr = atob(arr[1])
       const u8arr = new Uint8Array(bstr.length)
       for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i)
-      const blob = new Blob([u8arr], { type: mime })
-      const url = URL.createObjectURL(blob)
-      window.open(url, '_blank')
+      window.open(URL.createObjectURL(new Blob([u8arr], { type: mime })), '_blank')
     } catch {
       window.open(aadharUrl, '_blank')
     }
   }
+
+  const isAadharImage = (url) =>
+    url.startsWith('data:image/') || (!url.startsWith('data:') && !url.toLowerCase().endsWith('.pdf'))
 
   const triggerAadharReplace = (userId, listType) => {
     setReplacingAadharFor({ userId, listType })
@@ -624,7 +630,7 @@ export default function AdminPage() {
                             {m.aadhar_url ? (
                               <span className="flex items-center gap-1.5">
                                 <button
-                                  onClick={() => openAadhar(m.aadhar_url, m.full_name)}
+                                  onClick={() => openAadhar(m.aadhar_url)}
                                   className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
                                 >
                                   <FileText size={12} /> View
@@ -767,12 +773,12 @@ export default function AdminPage() {
                     {/* Aadhar preview / status */}
                     {u.aadhar_url ? (
                       <div className="flex items-center gap-3 mt-1">
-                        {u.aadhar_url.startsWith('data:image/') ? (
+                        {isAadharImage(u.aadhar_url) ? (
                           <img
                             src={u.aadhar_url}
                             alt="Aadhar"
                             className="h-16 w-24 object-cover rounded-lg border border-gray-200 bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => openAadhar(u.aadhar_url, u.full_name)}
+                            onClick={() => openAadhar(u.aadhar_url)}
                           />
                         ) : (
                           <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
@@ -782,7 +788,7 @@ export default function AdminPage() {
                         )}
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => openAadhar(u.aadhar_url, u.full_name)}
+                            onClick={() => openAadhar(u.aadhar_url)}
                             className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
                           >
                             <FileText size={12} /> View
@@ -882,7 +888,7 @@ export default function AdminPage() {
                     {u.aadhar_url && (
                       <div className="mt-3">
                         <button
-                          onClick={() => openAadhar(u.aadhar_url, u.full_name)}
+                          onClick={() => openAadhar(u.aadhar_url)}
                           className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
                         >
                           <FileText size={12} /> View Aadhar

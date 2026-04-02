@@ -18,6 +18,7 @@ from app.models.models import User, Membership, Payment, MemberProfile
 from app.core.security import get_current_admin
 from app.utils.email import send_approval_email, send_rejection_email
 from app.core.config import settings
+from app.core.uploads import save_aadhar_file
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -508,6 +509,6 @@ async def admin_replace_aadhar(
     if not profile:
         raise HTTPException(status_code=404, detail="Member profile not found")
 
-    profile.aadhar_url = data.aadhar_data
+    profile.aadhar_url = save_aadhar_file(str(user_id), data.aadhar_data)
     await db.flush()
     return {"message": "Aadhar updated successfully"}

@@ -46,6 +46,7 @@ jobs:
             MEMBERSHIP_RENEWAL_AMOUNT_PAISE=150000
             PROTECTED_ADMIN_EMAILS=thiyagesh.d@gmail.com
             DEBUG=False
+            MEDIA_BASE_URL=https://dev.tirupurrunners.com
             EOF
 
             echo "[2/4] Updating Python dependencies..."
