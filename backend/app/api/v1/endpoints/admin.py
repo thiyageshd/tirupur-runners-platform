@@ -101,8 +101,13 @@ async def get_stats(
             Membership.user_id.not_in(active_user_ids),
         )
     )
+    # Pending membership payment — approved users whose latest membership is still "pending"
+    # These are not active or expired, causing the gap in total vs active+expired
     pending_count = await db.scalar(
-        select(func.count()).select_from(User).where(User.account_status == "pending_approval")
+        select(func.count(func.distinct(Membership.user_id))).where(
+            Membership.status == "pending",
+            Membership.user_id.not_in(active_user_ids),
+        )
     )
     total_revenue = await db.scalar(
         select(func.coalesce(func.sum(Payment.amount_paise), 0))

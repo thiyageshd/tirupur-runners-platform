@@ -399,7 +399,7 @@ export default function AdminPage() {
         { label: 'Total Members', value: stats.total_members, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
         { label: 'Active', value: stats.active_members, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
         { label: 'Expired', value: stats.expired_members, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50' },
-        { label: 'Pending', value: stats.pending_members, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+        { label: 'Pending Payment', value: stats.pending_members, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
         {
           label: 'Total Revenue',
           value: `₹${((stats.total_revenue_paise || 0) / 100).toLocaleString('en-IN')}`,
