@@ -27,9 +27,6 @@ export default function DashboardPage() {
   const fileInputRef = useRef(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
-  const aadharInputRef = useRef(null)
-  const [aadharUploading, setAadharUploading] = useState(false)
-  const [aadharError, setAadharError] = useState('')
 
   // Password change modal
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -144,30 +141,6 @@ export default function DashboardPage() {
         setPhotoError(err.response?.data?.detail || 'Upload failed')
       } finally {
         setPhotoUploading(false)
-        e.target.value = ''
-      }
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const handleAadharChange = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 2097152) {
-      setAadharError('File must be under 2MB')
-      return
-    }
-    setAadharError('')
-    setAadharUploading(true)
-    const reader = new FileReader()
-    reader.onload = async (ev) => {
-      try {
-        const res = await authApi.uploadAadhar(ev.target.result)
-        setMemberProfile(res.data)
-      } catch (err) {
-        setAadharError(err.response?.data?.detail || 'Upload failed')
-      } finally {
-        setAadharUploading(false)
         e.target.value = ''
       }
     }
@@ -502,25 +475,10 @@ export default function DashboardPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-1.5">
-                      <button
-                        onClick={() => { setAadharError(''); aadharInputRef.current?.click() }}
-                        disabled={aadharUploading}
-                        className="text-xs text-brand-600 hover:text-brand-700 bg-brand-50 border border-brand-200 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 w-fit disabled:opacity-50"
-                      >
-                        {aadharUploading ? <Loader2 size={12} className="animate-spin" /> : <FileText size={12} />}
-                        {aadharUploading ? 'Uploading...' : 'Upload Aadhar'}
-                      </button>
-                      {aadharError && <p className="text-xs text-red-500">{aadharError}</p>}
-                    </div>
+                    <span className="text-xs text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 w-fit block">
+                      Not uploaded — contact admin
+                    </span>
                   )}
-                  <input
-                    ref={aadharInputRef}
-                    type="file"
-                    accept="image/*,application/pdf"
-                    className="hidden"
-                    onChange={handleAadharChange}
-                  />
                 </div>
               </div>
 
