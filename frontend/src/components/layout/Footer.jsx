@@ -5,7 +5,7 @@ export default function Footer() {
   const { user, settings } = useAuthStore()
   return (
     <footer className="bg-gray-900 text-gray-400 mt-24">
-      <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
@@ -13,9 +13,13 @@ export default function Footer() {
             </div>
             <span className="text-white font-display font-bold">Tirupur Runners</span>
           </div>
-          <p className="text-sm leading-relaxed mb-4">
+          <p className="text-sm leading-relaxed">
             Building a stronger running community in Tirupur, Tamil Nadu since 2013.
           </p>
+        </div>
+
+        <div>
+          <h4 className="text-white font-semibold mb-3 text-sm">Address</h4>
           <ul className="space-y-1.5 text-sm">
             {settings?.contact_phone && (
               <li>
@@ -83,7 +87,7 @@ export default function Footer() {
         </div>
         */}
         {/* Sample Terms & Conditions (collapsible) */}
-        <div className="col-span-1 md:col-span-3 mt-6">
+        <div className="col-span-1 md:col-span-4 mt-6">
           <details className="text-xs text-gray-400 bg-gray-800/50 p-3 rounded-lg">
             <summary className="font-semibold cursor-pointer">Terms &amp; Conditions</summary>
             <div className="mt-2 space-y-1">
