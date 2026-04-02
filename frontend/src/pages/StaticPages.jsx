@@ -60,7 +60,6 @@ export function AboutPage() {
           <h2 className="font-display font-bold text-2xl mb-3">Join our community</h2>
           <p className="text-brand-100">
             250+ runners. 52 weekly runs a year. One unforgettable annual marathon.
-            New member annual membership — ₹2,000. Renewal — ₹1,500.
           </p>
         </div>
       </div>

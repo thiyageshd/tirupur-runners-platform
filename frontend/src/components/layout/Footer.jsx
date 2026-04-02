@@ -52,6 +52,23 @@ export default function Footer() {
           <p className="text-xs text-gray-600 mt-1">Email integration coming soon.</p>
         </div>
         */}
+        {/* Sample Terms & Conditions (collapsible) */}
+        <div className="col-span-1 md:col-span-3 mt-6">
+          <details className="text-xs text-gray-400 bg-gray-800/50 p-3 rounded-lg">
+            <summary className="font-semibold cursor-pointer">Terms &amp; Conditions</summary>
+            <div className="mt-2 space-y-1">
+              <p>
+                By using Tirupur Runners services and attending events you agree to follow event rules, respect other members, and assume responsibility for your own health and safety. Participation is at your own risk.
+              </p>
+              <p>
+                Membership fees are non-refundable except where required by law. The club reserves the right to cancel or modify events with prior notice.
+              </p>
+              <p>
+                For privacy details and how we use your data, see our Privacy Policy or contact us at <a className="text-white underline" href="mailto:tirupurrunners@gmail.com">tirupurrunners@gmail.com</a>.
+              </p>
+            </div>
+          </details>
+        </div>
       </div>
 
       <div className="border-t border-gray-800 px-4 py-4">
