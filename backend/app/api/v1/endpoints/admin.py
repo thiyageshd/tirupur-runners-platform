@@ -91,6 +91,7 @@ async def get_stats(
     )
 
     active_user_ids = select(Membership.user_id).where(Membership.status == "active")
+    expired_user_ids = select(Membership.user_id).where(Membership.status == "expired")
 
     active_count = await db.scalar(
         select(func.count(func.distinct(Membership.user_id))).where(Membership.status == "active")
@@ -101,12 +102,12 @@ async def get_stats(
             Membership.user_id.not_in(active_user_ids),
         )
     )
-    # Pending membership payment — approved users whose latest membership is still "pending"
-    # These are not active or expired, causing the gap in total vs active+expired
+    # Pending membership payment — only users with no active or expired membership
     pending_count = await db.scalar(
         select(func.count(func.distinct(Membership.user_id))).where(
             Membership.status == "pending",
             Membership.user_id.not_in(active_user_ids),
+            Membership.user_id.not_in(expired_user_ids),
         )
     )
     total_revenue = await db.scalar(
