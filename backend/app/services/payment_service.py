@@ -174,7 +174,7 @@ class PaymentService:
         order_status = rz_order.get("status")  # created | attempted | paid
 
         if order_status == "paid":
-            # Payment cleared on Razorpay — fetch captured payment_id
+            # Order paid — fetch the captured payment_id from payment items
             try:
                 rz_payments = self.rz.order.payments(payment.razorpay_order_id)
                 captured = next(
@@ -193,8 +193,23 @@ class PaymentService:
             await self.db.flush()
             return {"result": "activated", "message": "Payment confirmed. Membership activated."}
 
-        else:
-            # Still pending or failed — reset so user can retry
+        elif order_status == "attempted":
+            # At least one payment attempt exists — check individual payment statuses
+            try:
+                rz_payments = self.rz.order.payments(payment.razorpay_order_id)
+                items = rz_payments.get("items", [])
+            except Exception:
+                raise HTTPException(status_code=502, detail="Could not fetch payment details from Razorpay.")
+
+            # If any attempt is still in flight, do not reset — ask admin to check later
+            in_flight = any(p["status"] in ("created", "authorized") for p in items)
+            if in_flight:
+                return {
+                    "result": "pending",
+                    "message": "Payment is still being processed by Razorpay (UPI/netbanking in flight). Check again in a few minutes.",
+                }
+
+            # All attempts failed — safe to reset membership so user can retry
             payment.status = "failed"
             if payment.membership_id:
                 mem_result = await self.db.execute(
@@ -206,7 +221,23 @@ class PaymentService:
             await self.db.flush()
             return {
                 "result": "reset",
-                "message": f"Payment not cleared (Razorpay: {order_status}). Membership reset — user can retry.",
+                "message": "All payment attempts failed. Membership reset — user can retry payment.",
+            }
+
+        else:
+            # order_status == "created" — order was never attempted, user abandoned checkout
+            payment.status = "failed"
+            if payment.membership_id:
+                mem_result = await self.db.execute(
+                    select(Membership).where(Membership.id == payment.membership_id)
+                )
+                membership = mem_result.scalar_one_or_none()
+                if membership:
+                    membership.status = "expired"
+            await self.db.flush()
+            return {
+                "result": "reset",
+                "message": "Payment was never attempted. Membership reset — user can retry payment.",
             }
 
     async def handle_webhook(self, event: str, payload: dict) -> dict:
