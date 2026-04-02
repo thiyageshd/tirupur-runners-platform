@@ -282,7 +282,7 @@ export default function AdminPage() {
   }
 
   const handleSyncPayment = async (userId, memberName) => {
-    if (!confirm(`Check Razorpay payment status for ${memberName}?\n\nIf payment cleared → membership activated.\nIf not cleared → membership reset so user can retry.`)) return
+    if (!confirm(`Check payment status for ${memberName}?`)) return
     setSyncingPayment(userId)
     try {
       const res = await adminApi.syncPayment(userId)
