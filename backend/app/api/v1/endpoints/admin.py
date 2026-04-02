@@ -35,6 +35,8 @@ async def list_members(
 ):
     svc = MembershipService(db)
     await svc.sync_expired_statuses()
+    # Auto-sync payments stuck in 'created' for > 30 mins against Razorpay
+    await PaymentService(db).sync_stale_payments(min_age_minutes=30)
     members = await svc.get_all_with_user(status_filter=status)
     return members
 
