@@ -100,6 +100,9 @@ async def get_stats(
             Membership.user_id.not_in(active_user_ids),
         )
     )
+    pending_count = await db.scalar(
+        select(func.count()).select_from(User).where(User.account_status == "pending_approval")
+    )
     total_revenue = await db.scalar(
         select(func.coalesce(func.sum(Payment.amount_paise), 0))
         .where(Payment.status == "paid")
@@ -109,6 +112,7 @@ async def get_stats(
         "total_members": total_members or 0,
         "active_members": active_count or 0,
         "expired_members": expired_count or 0,
+        "pending_members": pending_count or 0,
         "total_revenue_paise": total_revenue or 0,
     }
 
