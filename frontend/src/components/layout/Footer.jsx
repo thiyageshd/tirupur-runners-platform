@@ -14,7 +14,7 @@ export default function Footer() {
             <span className="text-white font-display font-bold">Tirupur Runners</span>
           </div>
           <p className="text-sm leading-relaxed">
-            Building a stronger running community in Tirupur, Tamil Nadu since 2018.
+            Building a stronger running community in Tirupur, Tamil Nadu since 2013.
           </p>
         </div>
 
