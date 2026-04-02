@@ -15,47 +15,21 @@ jobs:
     environment: dev
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Build frontend
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run build
-
-      - name: Copy frontend dist to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.BLUEHOST_HOST }}
-          username: ${{ secrets.BLUEHOST_USER }}
-          key: ${{ secrets.BLUEHOST_SSH_KEY }}
-          port: 22
-          source: "frontend/dist"
-          target: "/var/www/tirupur-runners-platform/frontend/"
-          strip_components: 1
-
-      - name: Deploy backend via SSH
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.BLUEHOST_HOST }}
           username: ${{ secrets.BLUEHOST_USER }}
           key: ${{ secrets.BLUEHOST_SSH_KEY }}
           port: 22
-          timeout: 120s
+          timeout: 180s
           script: |
             set -e
             cd /var/www/tirupur-runners-platform
             git fetch origin
             git reset --hard origin/dev
 
+            echo "[1/4] Writing .env..."
             cat > /var/www/tirupur-runners-platform/backend/.env << 'EOF'
             DATABASE_URL=${{ secrets.BLUEHOST_DATABASE_URL }}
             SECRET_KEY=${{ secrets.BLUEHOST_SECRET_KEY }}
@@ -68,9 +42,16 @@ jobs:
             DEBUG=False
             EOF
 
-            cd backend
+            echo "[2/4] Updating Python dependencies..."
+            cd /var/www/tirupur-runners-platform/backend
             .venv/bin/pip install -r requirements.txt --quiet
 
+            echo "[3/4] Building frontend..."
+            cd /var/www/tirupur-runners-platform/frontend
+            npm ci --prefer-offline --silent
+            npm run build
+
+            echo "[4/4] Restarting backend..."
             systemctl restart tirupur-runners
             systemctl is-active tirupur-runners
             echo "✓ Dev deploy complete"
