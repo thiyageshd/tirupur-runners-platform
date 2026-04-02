@@ -60,7 +60,6 @@ export function AboutPage() {
           <h2 className="font-display font-bold text-2xl mb-3">Join our community</h2>
           <p className="text-brand-100">
             250+ runners. 52 weekly runs a year. One unforgettable annual marathon.
-            New member annual membership — ₹2,000. Renewal — ₹1,500.
           </p>
         </div>
       </div>
@@ -71,7 +70,7 @@ export function AboutPage() {
 const DEFAULT_CONTACT = {
   contact_email: 'tirupurrunners@gmail.com',
   contact_phone: '+91 94882 52599',
-  run_location: 'Tirupur Collectorate',
+  office_location: 'New No 12 B, Eswaran Kovil Street, Valarmathi Electricals Upstairs',
   run_day_time: 'Every Sunday, 5:30 AM',
   maps_link: 'https://maps.google.com/?q=Tirupur+Collectorate,Tirupur,Tamil+Nadu',
 }
@@ -110,8 +109,8 @@ export function ContactPage() {
           <div className="card flex gap-3 items-start">
             <span className="text-xl">📍</span>
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Location</p>
-              <p className="text-sm font-medium text-gray-800">{settings.run_location}, Tirupur, TN</p>
+              <p className="text-xs text-gray-400 mb-0.5">Office Location</p>
+              <p className="text-sm font-medium text-gray-800">{settings.office_location}, Tirupur, TN</p>
               {settings.maps_link && (
                 <a
                   href={settings.maps_link}

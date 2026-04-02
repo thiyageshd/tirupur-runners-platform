@@ -12,7 +12,7 @@ const EVENTS = [
     location: 'Tirupur Collectorate',
     mapsUrl: COLLECTORATE_MAPS_URL,
     category: 'Weekly',
-    desc: 'Our flagship weekly run. All paces welcome — 5K, 10K, or custom routes.',
+    desc: 'Our flagship weekly run. All paces welcome — 5K, 10K, 21K or custom routes.',
     color: 'brand',
   },
   {

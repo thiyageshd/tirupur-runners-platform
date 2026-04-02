@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     MEMBERSHIP_AMOUNT_PAISE: int = 200000       # ₹2000 in paise (new members)
     MEMBERSHIP_NEW_AMOUNT_PAISE: int = 200000   # ₹2000 — first-time members
     MEMBERSHIP_RENEWAL_AMOUNT_PAISE: int = 150000  # ₹1500 — renewal for existing members
+    # Set to 100 (₹1) to test real Razorpay payments without charging full amount.
+    # Remove or set to 0 before going live.
+    PAYMENT_TEST_AMOUNT_PAISE: int = 0          # 0 = disabled (use actual amounts)
 
     # Admin
     ADMIN_EMAIL: str = "tirupurrunners@gmail.com"
