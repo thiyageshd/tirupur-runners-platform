@@ -15,22 +15,6 @@ jobs:
     environment: dev
 
     steps:
-      - name: Debug secrets
-        run: |
-          if [ -z "$KEY" ]; then
-            echo "❌ BLUEHOST_SSH_KEY is empty or not found"
-          else
-            echo "✓ BLUEHOST_SSH_KEY is set (length: ${#KEY})"
-          fi
-          if [ -z "$HOST" ]; then
-            echo "❌ BLUEHOST_HOST is empty or not found"
-          else
-            echo "✓ BLUEHOST_HOST is set: $HOST"
-          fi
-        env:
-          KEY: ${{ secrets.BLUEHOST_SSH_KEY }}
-          HOST: ${{ secrets.BLUEHOST_HOST }}
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
