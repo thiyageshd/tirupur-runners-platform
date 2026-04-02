@@ -34,11 +34,11 @@ export default function Footer() {
             ))}
           </ul>
         </div>
-
+        
+        {/* Newsletter — temporarily hidden
         <div>
           <h4 className="text-white font-semibold mb-3 text-sm">Newsletter</h4>
           <p className="text-sm mb-3">Stay updated with runs, events, and training tips.</p>
-          {/* Placeholder — backend extensible */}
           <div className="flex gap-2">
             <input
               type="email"
@@ -51,6 +51,7 @@ export default function Footer() {
           </div>
           <p className="text-xs text-gray-600 mt-1">Email integration coming soon.</p>
         </div>
+        */}
       </div>
 
       <div className="border-t border-gray-800 px-4 py-4">
