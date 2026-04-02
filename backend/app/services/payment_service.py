@@ -60,14 +60,17 @@ class PaymentService:
                     status_code=409,
                     detail=f"Membership for year {year} already paid",
                 )
-            # Return existing pending order — user can retry payment
-            return {
-                "order_id": existing.razorpay_order_id,
-                "amount": existing.amount_paise,
-                "currency": existing.currency,
-                "key_id": settings.RAZORPAY_KEY_ID,
-                "is_renewal": existing.amount_paise == settings.MEMBERSHIP_RENEWAL_AMOUNT_PAISE,
-            }
+            if existing.status == "created":
+                # Return existing pending order — user can retry payment
+                return {
+                    "order_id": existing.razorpay_order_id,
+                    "amount": existing.amount_paise,
+                    "currency": existing.currency,
+                    "key_id": settings.RAZORPAY_KEY_ID,
+                    "is_renewal": existing.amount_paise == settings.MEMBERSHIP_RENEWAL_AMOUNT_PAISE,
+                }
+            # status == "failed" — previous attempt failed (e.g. test→live key switch).
+            # Create a fresh Razorpay order and update the existing payment record.
 
         # Determine pricing: existing members renew at ₹1500, new at ₹2000
         is_renewal = await self._has_prior_paid_membership(user_id)
@@ -80,31 +83,51 @@ class PaymentService:
         if settings.PAYMENT_TEST_AMOUNT_PAISE > 0:
             amount_paise = settings.PAYMENT_TEST_AMOUNT_PAISE
 
-        # Create pending membership first
+        # Resolve membership: reuse/reset the linked one, or create new
         membership_svc = MembershipService(self.db)
-        membership = await membership_svc.create_pending_membership(user_id, year)
+        if existing and existing.membership_id:
+            mem_result = await self.db.execute(
+                select(Membership).where(Membership.id == existing.membership_id)
+            )
+            membership = mem_result.scalar_one_or_none()
+            if membership:
+                membership.status = "pending"
+            else:
+                membership = await membership_svc.create_pending_membership(user_id, year)
+                existing.membership_id = membership.id
+        else:
+            membership = await membership_svc.create_pending_membership(user_id, year)
 
         # Create Razorpay order
+        retry_suffix = "r" if existing else ""
         rz_order = self.rz.order.create({
             "amount": amount_paise,
             "currency": "INR",
-            "receipt": f"m{str(user_id).replace('-','')[:10]}{year}",
+            "receipt": f"m{str(user_id).replace('-','')[:10]}{year}{retry_suffix}",
             "notes": {"user_id": str(user_id), "year": str(year)},
         })
 
-        # Persist payment record
-        payment = Payment(
-            user_id=user_id,
-            membership_id=membership.id,
-            razorpay_order_id=rz_order["id"],
-            amount_paise=amount_paise,
-            currency="INR",
-            status="created",
-            idempotency_key=ikey,
-            metadata_={"year": year, "receipt": rz_order.get("receipt"), "is_renewal": is_renewal},
-        )
-        self.db.add(payment)
-        await self.db.flush()
+        if existing:
+            # Update the failed payment record with the new order
+            existing.razorpay_order_id = rz_order["id"]
+            existing.amount_paise = amount_paise
+            existing.status = "created"
+            existing.membership_id = membership.id
+            existing.metadata_ = {"year": year, "receipt": rz_order.get("receipt"), "is_renewal": is_renewal}
+            await self.db.flush()
+        else:
+            payment = Payment(
+                user_id=user_id,
+                membership_id=membership.id,
+                razorpay_order_id=rz_order["id"],
+                amount_paise=amount_paise,
+                currency="INR",
+                status="created",
+                idempotency_key=ikey,
+                metadata_={"year": year, "receipt": rz_order.get("receipt"), "is_renewal": is_renewal},
+            )
+            self.db.add(payment)
+            await self.db.flush()
 
         return {
             "order_id": rz_order["id"],
