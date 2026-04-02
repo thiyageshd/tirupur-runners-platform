@@ -5,7 +5,7 @@ Full-stack web application for club registration, membership management, and ann
 - **Website:** https://tirupurrunners.com
 - **Dev:** https://dev.tirupurrunners.com
 - **Club contact:** tirupurrunners@gmail.com | +91 94882 52599
-- **Weekly run:** Every Sunday 5:30 AM at VOC Park, Tirupur
+- **Weekly run:** Every Sunday 5:30 AM at Collectorate, Tirupur
 
 ---
 

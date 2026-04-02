@@ -12,7 +12,7 @@ const STATS = [
 const FEATURES = [
   {
     title: 'Weekly Group Runs',
-    desc: 'Join our 5am runs every Sunday at VOC Park. Beginners to ultrarunners welcome.',
+    desc: 'Join our 5am runs every Sunday at Tirupur Collectorate. Beginners to ultrarunners welcome.',
     emoji: '🏃',
   },
   {
@@ -34,6 +34,7 @@ const FEATURES = [
 
 export default function HomePage() {
   const { settings, user } = useAuthStore()
+  // Temporarily disabled — re-enable by removing the `false &&` below
   const showJoin = !user && settings?.show_join_club !== 'false'
 
   return (

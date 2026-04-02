@@ -18,6 +18,7 @@ from app.models.models import User, Membership, Payment, MemberProfile
 from app.core.security import get_current_admin
 from app.utils.email import send_approval_email, send_rejection_email
 from app.core.config import settings
+from app.core.uploads import save_aadhar_file
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -89,11 +90,24 @@ async def get_stats(
         select(func.count()).select_from(User).where(User.account_status == "approved")
     )
 
+    active_user_ids = select(Membership.user_id).where(Membership.status == "active")
+
     active_count = await db.scalar(
         select(func.count(func.distinct(Membership.user_id))).where(Membership.status == "active")
     )
     expired_count = await db.scalar(
-        select(func.count()).select_from(Membership).where(Membership.status == "expired")
+        select(func.count(func.distinct(Membership.user_id))).where(
+            Membership.status == "expired",
+            Membership.user_id.not_in(active_user_ids),
+        )
+    )
+    # Pending membership payment — approved users whose latest membership is still "pending"
+    # These are not active or expired, causing the gap in total vs active+expired
+    pending_count = await db.scalar(
+        select(func.count(func.distinct(Membership.user_id))).where(
+            Membership.status == "pending",
+            Membership.user_id.not_in(active_user_ids),
+        )
     )
     total_revenue = await db.scalar(
         select(func.coalesce(func.sum(Payment.amount_paise), 0))
@@ -104,6 +118,7 @@ async def get_stats(
         "total_members": total_members or 0,
         "active_members": active_count or 0,
         "expired_members": expired_count or 0,
+        "pending_members": pending_count or 0,
         "total_revenue_paise": total_revenue or 0,
     }
 
@@ -307,6 +322,33 @@ async def get_inactive_members(
     ]
 
 
+@router.get("/users/rejected", response_model=list[PendingUserItem])
+async def get_rejected_users(
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(User)
+        .where(User.account_status == "rejected")
+        .order_by(User.created_at.desc())
+    )
+    users = result.scalars().all()
+    return [
+        PendingUserItem(
+            id=u.id,
+            full_name=u.full_name,
+            email=u.email,
+            phone=u.phone,
+            age=u.age,
+            gender=u.gender,
+            t_shirt_size=u.t_shirt_size,
+            created_at=u.created_at,
+            aadhar_url=u.profile.aadhar_url if u.profile else None,
+        )
+        for u in users
+    ]
+
+
 @router.get("/users/pending", response_model=list[PendingUserItem])
 async def get_pending_users(
     current_admin=Depends(get_current_admin),
@@ -472,6 +514,6 @@ async def admin_replace_aadhar(
     if not profile:
         raise HTTPException(status_code=404, detail="Member profile not found")
 
-    profile.aadhar_url = data.aadhar_data
+    profile.aadhar_url = save_aadhar_file(str(user_id), data.aadhar_data)
     await db.flush()
     return {"message": "Aadhar updated successfully"}

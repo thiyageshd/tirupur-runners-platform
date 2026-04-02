@@ -185,6 +185,7 @@ class AdminStatsResponse(BaseModel):
     total_members: int
     active_members: int
     expired_members: int
+    pending_members: int
     total_revenue_paise: int
 
 
