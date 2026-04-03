@@ -3,8 +3,7 @@ import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { Eye, EyeOff, Clock, Loader2, FileText, X } from 'lucide-react'
 import FormField from '../components/ui/FormField'
-import { authApi } from '../api'
-import { useAuthStore } from '../store/authStore'
+import { authApi, apiClient } from '../api'
 
 const STEPS = ['Account', 'Personal Info', 'Documents']
 
@@ -15,7 +14,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const { setToken, fetchMe } = useAuthStore()
 
   const [aadharDataUrl, setAadharDataUrl] = useState(null)
   const [aadharMeta, setAadharMeta] = useState(null) // { name, type }
@@ -38,7 +36,29 @@ export default function RegisterPage() {
 
   const nextStep = async () => {
     const valid = await trigger(STEP_FIELDS[step])
-    if (valid) setStep((s) => s + 1)
+    if (!valid) return
+    if (step === 0) {
+      try {
+        await authApi.checkEmail(watch('email'))
+      } catch (err) {
+        if (err.response?.status === 409) {
+          setError('This email is already registered. Please login instead.')
+          return
+        }
+      }
+    }
+    if (step === 1) {
+      try {
+        await authApi.checkPhone(watch('phone'))
+      } catch (err) {
+        if (err.response?.status === 409) {
+          setError('This phone number is already registered. Please login instead.')
+          return
+        }
+      }
+    }
+    setError('')
+    setStep((s) => s + 1)
   }
 
   const handleAadharChange = (e) => {
@@ -71,25 +91,28 @@ export default function RegisterPage() {
     }
     setLoading(true)
     setError('')
+    let userCreated = false
     try {
       // 1. Register user
       await authApi.register(data)
+      userCreated = true
 
-      // 2. Login to get token
+      // 2. Get temp token for uploads only — do NOT store in auth state (no auto-login)
       const loginRes = await authApi.login({ identifier: data.email, password: data.password })
-      setToken(loginRes.data.access_token)
-      await fetchMe()
+      const tempToken = loginRes.data.access_token
 
-      // 3. Upload Aadhar
-      await authApi.uploadAadhar(aadharDataUrl)
+      // 3. Upload Aadhar using temp token
+      await apiClient.put('/auth/me/aadhar', { aadhar_data: aadharDataUrl }, {
+        headers: { Authorization: `Bearer ${tempToken}` },
+      })
 
       // 4. Save optional profile extras
       if (data.blood_group || data.strava_link) {
         try {
-          await authApi.updateMyProfile({
+          await apiClient.put('/auth/me/profile', {
             blood_group: data.blood_group || undefined,
             strava_link: data.strava_link || undefined,
-          })
+          }, { headers: { Authorization: `Bearer ${tempToken}` } })
         } catch {
           // Non-critical
         }
@@ -97,7 +120,12 @@ export default function RegisterPage() {
 
       setSuccess(true)
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Registration failed')
+      if (userCreated) {
+        // Account created but Aadhar upload failed — treat as success, user can upload from dashboard
+        setSuccess(true)
+      } else {
+        setError(err.response?.data?.detail || err.message || 'Registration failed')
+      }
     } finally {
       setLoading(false)
     }
@@ -114,6 +142,7 @@ export default function RegisterPage() {
           <p className="text-gray-600 mb-2">Your registration is <strong>pending admin approval</strong>.</p>
           <p className="text-gray-500 text-sm mb-6">
             You will receive an email once your registration is reviewed. After approval, you can log in and complete your membership payment.
+            If your Aadhar document was not uploaded, you can do so from your dashboard after logging in.
           </p>
           <Link to="/members/login" className="btn-primary inline-block">
             Go to Login
@@ -129,7 +158,7 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="font-display font-bold text-3xl text-gray-900 mb-2">Join Tirupur Runners</h1>
-          <p className="text-gray-500 text-sm">Register free — membership payment after admin approval</p>
+          <p className="text-gray-500 text-sm">Membership payment after admin approval</p>
         </div>
 
         {/* Step indicator */}
@@ -225,6 +254,12 @@ export default function RegisterPage() {
                     </button>
                   </div>
                 </FormField>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
 
                 <button type="button" className="btn-primary w-full mt-2" onClick={nextStep}>
                   Continue →
@@ -356,6 +391,12 @@ export default function RegisterPage() {
                     />
                   </FormField>
                 </div>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
 
                 <div className="flex gap-3 mt-2">
                   <button

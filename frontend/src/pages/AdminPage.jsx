@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Download, Users, TrendingUp, XCircle, Clock, Loader2,
   Crown, Shield, ShieldOff, Upload, MessageSquare, Settings, CheckCircle2,
-  Pencil, Check, X, UserCheck, UserX, FileText,
+  Pencil, Check, X, UserCheck, UserX, FileText, RefreshCw,
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { adminApi, settingsApi } from '../api'
@@ -15,7 +15,7 @@ const STATUS_BADGE = {
   pending: 'bg-yellow-100 text-yellow-700',
 }
 
-const TABS = ['Members', 'Approvals', 'Inactive Members', 'Offline Payments', 'SMS', 'Settings']
+const TABS = ['Members', 'Approvals', 'Rejected', 'Inactive Members', 'Offline Payments', 'SMS', 'Settings']
 
 // Emails that can never be deleted via the admin panel
 const PROTECTED_ADMINS = ['thiyagesh.d@gmail.com']
@@ -58,7 +58,13 @@ export default function AdminPage() {
   const [approvingUser, setApprovingUser] = useState(null)
   const [rejectingUser, setRejectingUser] = useState(null)
   const [deletingUser, setDeletingUser] = useState(null)
+  const [syncingPayment, setSyncingPayment] = useState(null)
   const [deleteToast, setDeleteToast] = useState(false)
+
+  // Rejected tab
+  const [rejectedUsers, setRejectedUsers] = useState([])
+  const [rejectedLoading, setRejectedLoading] = useState(false)
+  const [reapprovingUser, setReapprovingUser] = useState(null)
 
   // Aadhar replace (admin)
   const aadharReplaceInputRef = useRef(null)
@@ -95,6 +101,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (activeTab === 'Approvals') loadPendingUsers()
+    if (activeTab === 'Rejected') loadRejectedUsers()
     if (activeTab === 'Inactive Members') loadInactiveMembers()
   }, [activeTab])
 
@@ -107,6 +114,47 @@ export default function AdminPage() {
       console.error(err)
     } finally {
       setInactiveLoading(false)
+    }
+  }
+
+  const loadRejectedUsers = async () => {
+    setRejectedLoading(true)
+    try {
+      const res = await adminApi.getRejectedUsers()
+      setRejectedUsers(res.data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setRejectedLoading(false)
+    }
+  }
+
+  const handleReapprove = async (userId) => {
+    if (!confirm('Re-approve this user? They will receive an approval email and can log in.')) return
+    setReapprovingUser(userId)
+    try {
+      await adminApi.approveUser(userId)
+      setRejectedUsers((prev) => prev.filter((u) => u.id !== userId))
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to approve')
+    } finally {
+      setReapprovingUser(null)
+    }
+  }
+
+  const handleDeleteRejected = async (userId) => {
+    if (!PROTECTED_ADMINS.includes(user?.email?.toLowerCase())) return
+    if (!confirm('Permanently delete this rejected user? This cannot be undone.')) return
+    setDeletingUser(userId)
+    try {
+      await adminApi.deleteUser(userId)
+      setRejectedUsers((prev) => prev.filter((u) => u.id !== userId))
+      setDeleteToast(true)
+      setTimeout(() => setDeleteToast(false), 3000)
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete')
+    } finally {
+      setDeletingUser(null)
     }
   }
 
@@ -163,21 +211,27 @@ export default function AdminPage() {
     }
   }
 
-  const openAadhar = (aadharUrl, name) => {
-    // Convert base64 data URI to blob URL so the browser can display it
+  const openAadhar = (aadharUrl) => {
+    if (!aadharUrl.startsWith('data:')) {
+      // New: file URL — open directly
+      window.open(aadharUrl, '_blank')
+      return
+    }
+    // Legacy: base64 data URI → convert to blob URL
     try {
       const arr = aadharUrl.split(',')
       const mime = arr[0].match(/:(.*?);/)[1]
       const bstr = atob(arr[1])
       const u8arr = new Uint8Array(bstr.length)
       for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i)
-      const blob = new Blob([u8arr], { type: mime })
-      const url = URL.createObjectURL(blob)
-      window.open(url, '_blank')
+      window.open(URL.createObjectURL(new Blob([u8arr], { type: mime })), '_blank')
     } catch {
       window.open(aadharUrl, '_blank')
     }
   }
+
+  const isAadharImage = (url) =>
+    url.startsWith('data:image/') || (!url.startsWith('data:') && !url.toLowerCase().endsWith('.pdf'))
 
   const triggerAadharReplace = (userId, listType) => {
     setReplacingAadharFor({ userId, listType })
@@ -224,6 +278,20 @@ export default function AdminPage() {
       alert(err.response?.data?.detail || 'Failed to delete')
     } finally {
       setDeletingUser(null)
+    }
+  }
+
+  const handleSyncPayment = async (userId, memberName) => {
+    if (!confirm(`Check payment status for ${memberName}?`)) return
+    setSyncingPayment(userId)
+    try {
+      const res = await adminApi.syncPayment(userId)
+      alert(res.data.message)
+      await loadData()
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to sync payment status')
+    } finally {
+      setSyncingPayment(null)
     }
   }
 
@@ -346,6 +414,7 @@ export default function AdminPage() {
         { label: 'Total Members', value: stats.total_members, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
         { label: 'Active', value: stats.active_members, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
         { label: 'Expired', value: stats.expired_members, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50' },
+        { label: 'Pending Payment', value: stats.pending_members, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
         {
           label: 'Total Revenue',
           value: `₹${((stats.total_revenue_paise || 0) / 100).toLocaleString('en-IN')}`,
@@ -394,15 +463,15 @@ export default function AdminPage() {
 
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-6">
             {STAT_CARDS.map(({ label, value, icon: Icon, color, bg }) => (
-              <div key={label} className="card flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center`}>
-                  <Icon size={18} className={color} />
+              <div key={label} className="card !p-3 flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg ${bg} flex-shrink-0 flex items-center justify-center`}>
+                  <Icon size={15} className={color} />
                 </div>
-                <div>
-                  <p className="font-bold text-xl text-gray-900">{value}</p>
-                  <p className="text-xs text-gray-500">{label}</p>
+                <div className="min-w-0">
+                  <p className="font-bold text-lg text-gray-900 leading-tight">{value}</p>
+                  <p className="text-xs text-gray-500 truncate">{label}</p>
                 </div>
               </div>
             ))}
@@ -576,7 +645,7 @@ export default function AdminPage() {
                             {m.aadhar_url ? (
                               <span className="flex items-center gap-1.5">
                                 <button
-                                  onClick={() => openAadhar(m.aadhar_url, m.full_name)}
+                                  onClick={() => openAadhar(m.aadhar_url)}
                                   className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
                                 >
                                   <FileText size={12} /> View
@@ -601,9 +670,23 @@ export default function AdminPage() {
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[m.membership_status]}`}>
-                              {m.membership_status}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[m.membership_status]}`}>
+                                {m.membership_status}
+                              </span>
+                              {m.membership_status === 'pending' && (
+                                <button
+                                  onClick={() => handleSyncPayment(m.user_id, m.full_name)}
+                                  disabled={syncingPayment === m.user_id}
+                                  title="Check payment status with Razorpay"
+                                  className="p-1 rounded text-yellow-600 hover:bg-yellow-50 transition-colors disabled:opacity-50"
+                                >
+                                  {syncingPayment === m.user_id
+                                    ? <Loader2 size={13} className="animate-spin" />
+                                    : <RefreshCw size={13} />}
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-gray-600">{m.membership_year}</td>
                           <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
@@ -719,12 +802,12 @@ export default function AdminPage() {
                     {/* Aadhar preview / status */}
                     {u.aadhar_url ? (
                       <div className="flex items-center gap-3 mt-1">
-                        {u.aadhar_url.startsWith('data:image/') ? (
+                        {isAadharImage(u.aadhar_url) ? (
                           <img
                             src={u.aadhar_url}
                             alt="Aadhar"
                             className="h-16 w-24 object-cover rounded-lg border border-gray-200 bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => openAadhar(u.aadhar_url, u.full_name)}
+                            onClick={() => openAadhar(u.aadhar_url)}
                           />
                         ) : (
                           <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
@@ -734,7 +817,7 @@ export default function AdminPage() {
                         )}
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => openAadhar(u.aadhar_url, u.full_name)}
+                            onClick={() => openAadhar(u.aadhar_url)}
                             className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
                           >
                             <FileText size={12} /> View
@@ -767,6 +850,84 @@ export default function AdminPage() {
               </div>
             )}
             {/* deleteToast moved to top-level so it shows across tabs */}
+          </div>
+        )}
+
+        {/* ── Rejected Tab ── */}
+        {activeTab === 'Rejected' && (
+          <div className="card">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+                <UserX size={18} className="text-red-500" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Rejected Registrations</h2>
+                <p className="text-xs text-gray-500">Re-approve if a user comes back with a valid request</p>
+              </div>
+            </div>
+
+            {rejectedLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 size={28} className="animate-spin text-brand-600" />
+              </div>
+            ) : rejectedUsers.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <UserX size={32} className="mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No rejected registrations</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {rejectedUsers.map((u) => (
+                  <div key={u.id} className="p-4 bg-red-50 rounded-xl border border-red-100">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm">{u.full_name}</p>
+                        <p className="text-xs text-gray-500 truncate">{u.email} · {u.phone}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Age {u.age} · {u.gender}
+                          {u.t_shirt_size && ` · ${u.t_shirt_size}`}
+                          {u.created_at && ` · Registered ${format(new Date(u.created_at), 'dd MMM yyyy')}`}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleReapprove(u.id)}
+                          disabled={reapprovingUser === u.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {reapprovingUser === u.id
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : <UserCheck size={12} />}
+                          Approve
+                        </button>
+                        {PROTECTED_ADMINS.includes(user?.email?.toLowerCase()) && (
+                          <button
+                            onClick={() => handleDeleteRejected(u.id)}
+                            disabled={deletingUser === u.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {deletingUser === u.id
+                              ? <Loader2 size={12} className="animate-spin" />
+                              : <X size={12} />}
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {u.aadhar_url && (
+                      <div className="mt-3">
+                        <button
+                          onClick={() => openAadhar(u.aadhar_url)}
+                          className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+                        >
+                          <FileText size={12} /> View Aadhar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1003,7 +1164,7 @@ export default function AdminPage() {
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Contact & Club Info</p>
                   {[
                     { key: 'contact_email', label: 'Contact Email', type: 'email' },
-                    { key: 'contact_phone', label: 'Contact Phone', type: 'tel' },
+                    { key: 'contact_phone', label: 'Whatsapp Phone', type: 'tel' },
                     { key: 'run_location', label: 'Run Location', type: 'text' },
                     { key: 'run_day_time', label: 'Run Day & Time', type: 'text' },
                     { key: 'maps_link', label: 'Google Maps Link', type: 'url' },

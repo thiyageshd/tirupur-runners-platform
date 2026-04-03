@@ -3,17 +3,20 @@ name: Deploy to Render
 # Triggers:
 #   push to main → production deploy
 #   push to dev  → development/staging deploy
+# DISABLED — Render deployment paused while using Bluehost VPS
+# on:
+#   push:
+#     branches:
+#       - main
+#       - dev
+#     paths:
+#       - "frontend/**"
+#       - "backend/**"
+#       - "render.yaml"
+#       - "render-dev.yaml"
+#       - ".github/workflows/deploy.yml"
 on:
-  push:
-    branches:
-      - main
-      - dev
-    paths:
-      - "frontend/**"
-      - "backend/**"
-      - "render.yaml"
-      - "render-dev.yaml"
-      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
 
 jobs:
   deploy:

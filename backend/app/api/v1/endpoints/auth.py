@@ -12,9 +12,29 @@ from app.schemas.schemas import (
 )
 from app.services.user_service import UserService
 from app.core.security import get_current_user, hash_password, verify_password
+from app.core.uploads import save_aadhar_file, save_photo_file
 from app.utils.email import send_otp_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.get("/check-email")
+async def check_email(email: str, db: AsyncSession = Depends(get_db)):
+    svc = UserService(db)
+    user = await svc.get_by_email(email.lower().strip())
+    if user:
+        raise HTTPException(status_code=409, detail="Email already registered")
+    return {"available": True}
+
+
+@router.get("/check-phone")
+async def check_phone(phone: str, db: AsyncSession = Depends(get_db)):
+    digits = phone.replace("+91", "").replace(" ", "").replace("-", "")[-10:]
+    svc = UserService(db)
+    user = await svc.get_by_phone(digits)
+    if user:
+        raise HTTPException(status_code=409, detail="Phone number already registered")
+    return {"available": True}
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)
@@ -102,7 +122,7 @@ async def upload_photo(
         raise HTTPException(status_code=400, detail="Image too large. Maximum size is 500KB.")
     svc = UserService(db)
     profile = await svc.get_or_create_profile(current_user.id)
-    profile.photo_url = data.photo_data
+    profile.photo_url = save_photo_file(str(current_user.id), data.photo_data)
     await db.flush()
     return profile
 
@@ -135,7 +155,7 @@ async def upload_aadhar(
         raise HTTPException(status_code=400, detail="File too large. Maximum size is 2MB.")
     svc = UserService(db)
     profile = await svc.get_or_create_profile(current_user.id)
-    profile.aadhar_url = data.aadhar_data
+    profile.aadhar_url = save_aadhar_file(str(current_user.id), data.aadhar_data)
     await db.flush()
     return profile
 

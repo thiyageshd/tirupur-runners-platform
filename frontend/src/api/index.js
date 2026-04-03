@@ -30,6 +30,8 @@ apiClient.interceptors.response.use(
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
 export const authApi = {
+  checkEmail: (email) => apiClient.get('/auth/check-email', { params: { email } }),
+  checkPhone: (phone) => apiClient.get('/auth/check-phone', { params: { phone } }),
   register: (data) => apiClient.post('/auth/register', data),
   login: (data) => apiClient.post('/auth/login', data),
   requestOtp: (email) => apiClient.post('/auth/otp/request', { email }),
@@ -78,6 +80,7 @@ export const adminApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   getPendingUsers: () => apiClient.get('/admin/users/pending'),
+  getRejectedUsers: () => apiClient.get('/admin/users/rejected'),
   getInactiveMembers: () => apiClient.get('/admin/users/inactive'),
   approveUser: (id) => apiClient.put(`/admin/users/${id}/approve`),
   rejectUser: (id) => apiClient.put(`/admin/users/${id}/reject`),
@@ -86,6 +89,7 @@ export const adminApi = {
     apiClient.put(`/admin/memberships/${membershipUuid}/membership-id`, { membership_id }),
   replaceAadhar: (userId, aadhar_data) =>
     apiClient.put(`/admin/users/${userId}/aadhar`, { aadhar_data }),
+  syncPayment: (userId) => apiClient.post(`/admin/users/${userId}/sync-payment`),
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────

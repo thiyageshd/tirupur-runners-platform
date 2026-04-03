@@ -18,6 +18,8 @@ from app.models.models import User, Membership, Payment, MemberProfile
 from app.core.security import get_current_admin
 from app.utils.email import send_approval_email, send_rejection_email
 from app.core.config import settings
+from app.core.uploads import save_aadhar_file
+from app.services.payment_service import PaymentService
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -33,6 +35,8 @@ async def list_members(
 ):
     svc = MembershipService(db)
     await svc.sync_expired_statuses()
+    # Auto-sync payments stuck in 'created' for > 30 mins against Razorpay
+    await PaymentService(db).sync_stale_payments(min_age_minutes=30)
     members = await svc.get_all_with_user(status_filter=status)
     return members
 
@@ -89,11 +93,25 @@ async def get_stats(
         select(func.count()).select_from(User).where(User.account_status == "approved")
     )
 
+    active_user_ids = select(Membership.user_id).where(Membership.status == "active")
+    expired_user_ids = select(Membership.user_id).where(Membership.status == "expired")
+
     active_count = await db.scalar(
         select(func.count(func.distinct(Membership.user_id))).where(Membership.status == "active")
     )
     expired_count = await db.scalar(
-        select(func.count()).select_from(Membership).where(Membership.status == "expired")
+        select(func.count(func.distinct(Membership.user_id))).where(
+            Membership.status == "expired",
+            Membership.user_id.not_in(active_user_ids),
+        )
+    )
+    # Pending membership payment — only users with no active or expired membership
+    pending_count = await db.scalar(
+        select(func.count(func.distinct(Membership.user_id))).where(
+            Membership.status == "pending",
+            Membership.user_id.not_in(active_user_ids),
+            Membership.user_id.not_in(expired_user_ids),
+        )
     )
     total_revenue = await db.scalar(
         select(func.coalesce(func.sum(Payment.amount_paise), 0))
@@ -104,6 +122,7 @@ async def get_stats(
         "total_members": total_members or 0,
         "active_members": active_count or 0,
         "expired_members": expired_count or 0,
+        "pending_members": pending_count or 0,
         "total_revenue_paise": total_revenue or 0,
     }
 
@@ -307,6 +326,33 @@ async def get_inactive_members(
     ]
 
 
+@router.get("/users/rejected", response_model=list[PendingUserItem])
+async def get_rejected_users(
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(User)
+        .where(User.account_status == "rejected")
+        .order_by(User.created_at.desc())
+    )
+    users = result.scalars().all()
+    return [
+        PendingUserItem(
+            id=u.id,
+            full_name=u.full_name,
+            email=u.email,
+            phone=u.phone,
+            age=u.age,
+            gender=u.gender,
+            t_shirt_size=u.t_shirt_size,
+            created_at=u.created_at,
+            aadhar_url=u.profile.aadhar_url if u.profile else None,
+        )
+        for u in users
+    ]
+
+
 @router.get("/users/pending", response_model=list[PendingUserItem])
 async def get_pending_users(
     current_admin=Depends(get_current_admin),
@@ -455,6 +501,21 @@ async def update_membership_id(
     return {"membership_uuid": str(membership.id), "membership_id": membership.membership_id}
 
 
+@router.post("/users/{user_id}/sync-payment")
+async def sync_payment_status(
+    user_id: uuid_module.UUID,
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Check a member's pending Razorpay order against the Razorpay API.
+    - If the payment cleared: activates the membership.
+    - If still pending or failed: resets membership to 'expired' so the user can retry.
+    """
+    svc = PaymentService(db)
+    return await svc.sync_order_status(user_id)
+
+
 @router.put("/users/{user_id}/aadhar")
 async def admin_replace_aadhar(
     user_id: uuid_module.UUID,
@@ -472,6 +533,6 @@ async def admin_replace_aadhar(
     if not profile:
         raise HTTPException(status_code=404, detail="Member profile not found")
 
-    profile.aadhar_url = data.aadhar_data
+    profile.aadhar_url = save_aadhar_file(str(user_id), data.aadhar_data)
     await db.flush()
     return {"message": "Aadhar updated successfully"}

@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from pathlib import Path
 from sqlalchemy import text
 
 from app.core.config import settings
@@ -57,6 +59,11 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+# Serve uploaded files (Aadhar, etc.) — used in local dev; on VPS Nginx serves /uploads/ directly
+_uploads_dir = Path(settings.UPLOADS_DIR) if settings.UPLOADS_DIR else Path(__file__).parent / "uploads"
+_uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
 
 
 @app.get("/health")

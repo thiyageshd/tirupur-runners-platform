@@ -7,6 +7,7 @@ from datetime import date
 from app.db.session import get_db
 from app.schemas.schemas import MembershipResponse
 from app.services.membership_service import MembershipService
+from app.services.payment_service import PaymentService
 from app.models.models import Membership
 from app.core.security import get_current_user
 
@@ -19,6 +20,9 @@ async def get_my_membership(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Auto-sync any pending Razorpay payment for this user before returning membership
+    await PaymentService(db).sync_stale_payments(user_id=current_user.id)
+
     svc = MembershipService(db)
     if year is not None:
         result = await db.execute(

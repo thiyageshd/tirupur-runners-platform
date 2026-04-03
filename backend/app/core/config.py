@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     MEMBERSHIP_AMOUNT_PAISE: int = 200000       # ₹2000 in paise (new members)
     MEMBERSHIP_NEW_AMOUNT_PAISE: int = 200000   # ₹2000 — first-time members
     MEMBERSHIP_RENEWAL_AMOUNT_PAISE: int = 150000  # ₹1500 — renewal for existing members
+    # Set to 100 (₹1) to test real Razorpay payments without charging full amount.
+    # Remove or set to 0 before going live.
+    PAYMENT_TEST_AMOUNT_PAISE: int = 0          # 0 = disabled (use actual amounts)
 
     # Admin
     ADMIN_EMAIL: str = "tirupurrunners@gmail.com"
@@ -31,16 +34,24 @@ class Settings(BaseSettings):
     PROTECTED_ADMIN_EMAILS: str = "thiyagesh.d@gmail.com"
 
     # Email — Gmail SMTP — reserved for future use
-    GMAIL_USER: str = "tirupurrunners@gmail.com"        # e.g. tirupurrunners@gmail.com
-    GMAIL_APP_PASSWORD: str = "ylzzpldrdptecljc"  # 16-char Google App Password
+    GMAIL_USER: str = ""
+    GMAIL_APP_PASSWORD: str = ""
     FROM_EMAIL: str = "noreply@tirupurrunners.com"
-    RESEND_API_KEY: str = "re_Bw22ZR6j_LaP2gjM7xwSA1xyiZxw8ecxr"
+    RESEND_API_KEY: str = ""
 
     # CORS + Email links (override per environment)
     # localhost:  http://localhost:5173
     # dev:        https://tirupur-runners-web-dev.onrender.com
     # prod:       https://tirupurrunners.com
     FRONTEND_URL: str = "http://localhost:5173"
+
+    # File uploads — Aadhar and other documents
+    # UPLOADS_DIR: absolute path to uploads folder; defaults to {backend_dir}/uploads
+    UPLOADS_DIR: str = ""
+    # MEDIA_BASE_URL: base URL under which /uploads/ is served
+    # Local:  http://localhost:8000   (FastAPI StaticFiles)
+    # VPS:    https://dev.tirupurrunners.com  (Nginx serves /uploads/ directly)
+    MEDIA_BASE_URL: str = "http://localhost:8000"
 
     class Config:
         # Allow selecting env file via ENV_FILE env var:

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, RefreshCw, Pencil, X, Check, Camera, AlertTriangle, FileText, Lock, Eye, EyeOff } from 'lucide-react'
+import { Loader2, RefreshCw, Pencil, X, Check, Camera, AlertTriangle, FileText, Lock, Eye, EyeOff, Upload } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { format } from 'date-fns'
 import { useAuthStore } from '../store/authStore'
@@ -27,6 +27,9 @@ export default function DashboardPage() {
   const fileInputRef = useRef(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
+  const aadharInputRef = useRef(null)
+  const [aadharUploading, setAadharUploading] = useState(false)
+  const [aadharError, setAadharError] = useState('')
 
   // Password change modal
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -147,6 +150,30 @@ export default function DashboardPage() {
     reader.readAsDataURL(file)
   }
 
+  const handleAadharChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2097152) {
+      setAadharError('File must be under 2MB')
+      return
+    }
+    setAadharError('')
+    setAadharUploading(true)
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      try {
+        const res = await authApi.uploadAadhar(ev.target.result)
+        setMemberProfile(res.data)
+      } catch (err) {
+        setAadharError(err.response?.data?.detail || 'Upload failed')
+      } finally {
+        setAadharUploading(false)
+        e.target.value = ''
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   const onChangePassword = async (data) => {
     setPwLoading(true)
     setPwError('')
@@ -166,6 +193,12 @@ export default function DashboardPage() {
   }
 
   const openReceipt = (payment) => {
+    // Use server-generated receipt if available
+    if (payment.receipt_url) {
+      window.open(payment.receipt_url, '_blank')
+      return
+    }
+    // Fallback: generate inline (for older payments without receipt_url)
     const yearStr = payment.idempotency_key?.split(':').pop() || ''
     const yearNum = parseInt(yearStr, 10)
     const fyLabel = yearNum ? `FY ${yearNum}–${String(yearNum + 1).slice(-2)}` : '—'
@@ -388,7 +421,7 @@ export default function DashboardPage() {
               {/* Profile photo */}
               <div className="flex flex-col items-center gap-2">
                 <div className="relative w-24 h-24">
-                  {memberProfile?.photo_url?.startsWith('data:image/') ? (
+                  {memberProfile?.photo_url ? (
                     <img
                       src={memberProfile.photo_url}
                       alt={user?.full_name}
@@ -445,40 +478,56 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Aadhar — view only */}
+              {/* Aadhar */}
               <div className="border-t border-gray-100 pt-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Documents</p>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Aadhar Card</p>
-                  {memberProfile?.aadhar_url ? (
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full flex items-center gap-1">
-                        <Check size={11} /> Uploaded
-                      </span>
-                      <button
-                        onClick={() => {
-                          try {
-                            const arr = memberProfile.aadhar_url.split(',')
-                            const mime = arr[0].match(/:(.*?);/)[1]
-                            const bstr = atob(arr[1])
-                            const u8arr = new Uint8Array(bstr.length)
-                            for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i)
-                            const url = URL.createObjectURL(new Blob([u8arr], { type: mime }))
-                            window.open(url, '_blank')
-                          } catch {
-                            window.open(memberProfile.aadhar_url, '_blank')
-                          }
-                        }}
-                        className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
-                      >
-                        <FileText size={12} /> View
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 w-fit block">
-                      Not uploaded — contact admin
-                    </span>
-                  )}
+                  <p className="text-xs text-gray-400 mb-2">Aadhar Card</p>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {memberProfile?.aadhar_url && (
+                      <>
+                        <span className="text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full flex items-center gap-1">
+                          <Check size={11} /> Uploaded
+                        </span>
+                        <button
+                          onClick={() => {
+                            try {
+                              const arr = memberProfile.aadhar_url.split(',')
+                              const mime = arr[0].match(/:(.*?);/)[1]
+                              const bstr = atob(arr[1])
+                              const u8arr = new Uint8Array(bstr.length)
+                              for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i)
+                              const url = URL.createObjectURL(new Blob([u8arr], { type: mime }))
+                              window.open(url, '_blank')
+                            } catch {
+                              window.open(memberProfile.aadhar_url, '_blank')
+                            }
+                          }}
+                          className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+                        >
+                          <FileText size={12} /> View
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => aadharInputRef.current?.click()}
+                      disabled={aadharUploading}
+                      className="text-xs text-gray-500 hover:text-brand-600 font-medium flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {aadharUploading
+                        ? <><Loader2 size={12} className="animate-spin" /> Uploading…</>
+                        : <><Upload size={12} /> {memberProfile?.aadhar_url ? 'Replace' : 'Upload'}</>}
+                    </button>
+                    <input
+                      ref={aadharInputRef}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={handleAadharChange}
+                    />
+                  </div>
+                  {aadharError && <p className="text-xs text-red-500 mt-1">{aadharError}</p>}
+                  <p className="text-xs text-gray-400 mt-1">JPG, PNG or PDF · Max 2MB</p>
                 </div>
               </div>
 

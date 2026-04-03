@@ -3,7 +3,7 @@ import { authApi, settingsApi } from '../api'
 
 const getStoredUser = () => {
   try {
-    return JSON.parse(sessionStorage.getItem('auth_user') || 'null')
+    return JSON.parse(localStorage.getItem('auth_user') || 'null')
   } catch {
     return null
   }
@@ -33,13 +33,13 @@ export const useAuthStore = create((set, get) => ({
   fetchMe: async () => {
     try {
       const { data } = await authApi.me()
-      sessionStorage.setItem('auth_user', JSON.stringify(data))
+      localStorage.setItem('auth_user', JSON.stringify(data))
       set({ user: data })
     } catch (err) {
       // Only clear auth on explicit 401 (invalid/expired token).
       // Network errors and 5xx keep the cached session alive.
       if (err.response?.status === 401) {
-        sessionStorage.removeItem('auth_user')
+        localStorage.removeItem('auth_user')
         set({ user: null, token: null })
         localStorage.removeItem('access_token')
       }
@@ -61,7 +61,7 @@ export const useAuthStore = create((set, get) => ({
 
   logout: () => {
     localStorage.removeItem('access_token')
-    sessionStorage.removeItem('auth_user')
+    localStorage.removeItem('auth_user')
     set({ user: null, token: null })
   },
 

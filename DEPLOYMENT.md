@@ -1,198 +1,380 @@
-# Tirupur Runners Club — Deployment Guide
+# Tirupur Runners Club — Bluehost VPS Deployment Guide
 
-## Architecture Summary
-| Layer      | Service       | Cost         |
-|------------|---------------|--------------|
-| Frontend   | Vercel        | Free         |
-| Backend    | Render        | Free (spins down) / $7/mo (always-on) |
-| Database   | Neon.tech     | Free (0.5GB) |
-| Payments   | Razorpay      | 2% per txn   |
-| Email      | SendGrid      | Free (100/day)|
+## Architecture
+
+| Layer    | Setup                              |
+|----------|------------------------------------|
+| Server   | Bluehost VPS — Ubuntu 24.04        |
+| Backend  | FastAPI + uvicorn (systemd service)|
+| Frontend | React (Vite) — served via Nginx    |
+| Database | PostgreSQL 16                      |
+| Proxy    | Nginx (reverse proxy + static files)|
+| SSL      | Let's Encrypt (Certbot)            |
+
+### Environments on Same VPS
+
+| | Dev | Prod |
+|---|---|---|
+| URL | https://dev.tirupurrunners.com | https://tirupurrunners.com |
+| Branch | `dev` | `main` |
+| Backend port | `8000` | `8001` |
+| Database | `tirupur_runners_dev` | `tirupur_runners_prod` |
+| Directory | `/var/www/tirupur-runners-platform` | `/var/www/tirupur-runners-prod` |
+| Systemd service | `tirupur-runners` | `tirupur-runners-prod` |
 
 ---
 
-## Step 1 — Database (Neon.tech)
+## Part 1 — Initial VPS Setup
 
-1. Go to https://neon.tech and sign up (free)
-2. Create a new project: `tirupur-runners`
-3. Copy the **Connection string** — looks like:
-   ```
-   postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
-   ```
-4. For FastAPI's asyncpg driver, change `postgresql://` to `postgresql+asyncpg://`
-
-Your final DATABASE_URL:
+### 1.1 Connect to VPS
+```bash
+ssh root@129.121.87.71
 ```
-postgresql+asyncpg://user:password@ep-xxx.us-east-2.aws.neon.tech/neondb
+
+### 1.2 Update system packages
+```bash
+apt update && apt upgrade -y
 ```
 
----
+### 1.3 Install system dependencies
+```bash
+apt install -y git nginx postgresql postgresql-contrib python3 python3-venv python3-dev build-essential libpq-dev iptables-persistent certbot python3-certbot-nginx
+```
 
-## Step 2 — Razorpay Setup
-
-1. Go to https://dashboard.razorpay.com and sign up
-2. Complete KYC for your club (use club registration docs)
-3. Go to Settings → API Keys → Generate Key
-4. Note down: `Key ID` (rzp_live_xxx) and `Key Secret`
-5. Set up Webhooks:
-   - URL: `https://your-api.onrender.com/api/v1/payments/webhook`
-   - Events: `payment.captured`, `payment.failed`
-   - Copy the Webhook Secret
-
-For testing, use `rzp_test_xxx` keys — no real money charged.
+> **Note:** Ubuntu 24.04 ships Python 3.12. Do NOT try to install python3.11 — use python3 (3.12).
 
 ---
 
-## Step 3 — Backend on Render
+## Part 2 — PostgreSQL Setup
 
-1. Push your backend code to GitHub:
-   ```bash
-   cd tirupur-runners/backend
-   git init && git add . && git commit -m "Initial backend"
-   git remote add origin https://github.com/YOUR_USERNAME/tirupur-runners-api
-   git push -u origin main
-   ```
+### 2.1 Start PostgreSQL
+```bash
+systemctl enable postgresql
+systemctl start postgresql
+```
 
-2. Go to https://render.com → New → Web Service
-3. Connect your GitHub repo
-4. Settings:
-   - **Runtime**: Python 3
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-
-5. Add Environment Variables (in Render dashboard):
-   ```
-   DATABASE_URL=postgresql+asyncpg://...your neon url...
-   SECRET_KEY=<run: python -c "import secrets; print(secrets.token_hex(32))">
-   RAZORPAY_KEY_ID=rzp_live_xxx
-   RAZORPAY_KEY_SECRET=your_secret
-   RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
-   MEMBERSHIP_AMOUNT_PAISE=50000
-   DEBUG=False
-   FRONTEND_URL=https://tirupurrunners.vercel.app
-   ```
-
-6. Deploy — Render will give you a URL like `https://tirupur-runners-api.onrender.com`
-
-7. Visit `https://tirupur-runners-api.onrender.com/health` — should return `{"status":"ok"}`
-
-> Note: Free tier sleeps after 15min inactivity. Upgrade to $7/mo Starter for always-on.
-
----
-
-## Step 4 — Frontend on Vercel
-
-1. Push frontend code to GitHub:
-   ```bash
-   cd tirupur-runners/frontend
-   git init && git add . && git commit -m "Initial frontend"
-   git remote add origin https://github.com/YOUR_USERNAME/tirupur-runners-frontend
-   git push -u origin main
-   ```
-
-2. Go to https://vercel.com → New Project → Import your repo
-3. Framework: **Vite**
-4. Add Environment Variable:
-   ```
-   VITE_API_URL=https://tirupur-runners-api.onrender.com/api/v1
-   ```
-5. Deploy — Vercel gives you `https://tirupurrunners.vercel.app`
-
-6. Update your backend's `FRONTEND_URL` on Render to match.
-
----
-
-## Step 5 — Create Admin User
-
-After first deploy, run this against your Neon DB using the Neon SQL editor:
-
+### 2.2 Create Dev DB and user
+```bash
+sudo -u postgres psql
+```
 ```sql
--- First, register via the app normally, then promote to admin:
-UPDATE users SET is_admin = true WHERE email = 'admin@tirupurrunners.com';
+CREATE USER tirupur_dev WITH PASSWORD 'Runners.Tirupur@123';
+CREATE DATABASE tirupur_runners_dev OWNER tirupur_dev;
+GRANT ALL PRIVILEGES ON DATABASE tirupur_runners_dev TO tirupur_dev;
+\q
 ```
 
-Or use Neon's web SQL editor directly at https://console.neon.tech
-
----
-
-## Step 6 — Custom Domain (Optional)
-
-**Vercel**: Go to Project → Settings → Domains → Add `tirupurrunners.com`
-Then update your DNS at your domain registrar:
-```
-CNAME www → cname.vercel-dns.com
-A     @   → 76.76.21.21
+### 2.3 Create Prod DB and user (when setting up prod)
+```sql
+CREATE USER tirupur_prod WITH PASSWORD '<strong-password>';
+CREATE DATABASE tirupur_runners_prod OWNER tirupur_prod;
+GRANT ALL PRIVILEGES ON DATABASE tirupur_runners_prod TO tirupur_prod;
+\q
 ```
 
 ---
 
-## Step 7 — Email (SendGrid — Optional but Recommended)
+## Part 3 — Clone Repository
 
-1. Sign up at https://sendgrid.com (free tier: 100 emails/day)
-2. Create an API Key with "Mail Send" permission
-3. Verify your sender domain/email
-4. Add to Render env vars:
-   ```
-   SENDGRID_API_KEY=SG.xxxxxxxxxxxx
-   FROM_EMAIL=noreply@tirupurrunners.com
-   ```
-
----
-
-## Local Development
-
-### Backend
+### 3.1 Add VPS SSH key to GitHub
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env        # fill in values
-uvicorn main:app --reload
-# API docs: http://localhost:8000/api/docs
+ssh-keygen -t ed25519 -C "bluehost-vps"
+cat ~/.ssh/id_ed25519.pub
 ```
+Add the printed key to GitHub → Settings → SSH keys.
 
-### Frontend
+### 3.2 Clone repo (Dev)
 ```bash
-cd frontend
-npm install
-npm run dev
-# App: http://localhost:5173
+mkdir -p /var/www
+cd /var/www
+git clone git@github.com:thiyageshd/tirupur-runners.git tirupur-runners-platform
+cd tirupur-runners-platform
+git checkout dev
+```
+
+### 3.3 Clone repo (Prod)
+```bash
+cd /var/www
+git clone git@github.com:thiyageshd/tirupur-runners.git tirupur-runners-prod
+cd tirupur-runners-prod
+git checkout main
 ```
 
 ---
 
-## Database Migrations (Alembic)
+## Part 4 — Backend Setup
 
-For production schema changes — don't rely on auto-create:
+### 4.1 Create virtual environment
+```bash
+cd /var/www/tirupur-runners-platform/backend
+python3 -m venv .venv
+.venv/bin/python -m ensurepip --upgrade
+.venv/bin/pip install --upgrade pip setuptools wheel
+.venv/bin/pip install -r requirements.txt
+```
+
+> **Python 3.12 fix:** `setuptools==68.2.2` must be the first line in `requirements.txt`.
+> This fixes `ModuleNotFoundError: No module named 'pkg_resources'` caused by razorpay SDK.
+
+### 4.2 Create .env file
+```bash
+nano /var/www/tirupur-runners-platform/backend/.env
+```
+```env
+DATABASE_URL=postgresql+asyncpg://tirupur_dev:Runners.Tirupur%40123@localhost:5432/tirupur_runners_dev
+SECRET_KEY=<generate: python3 -c "import secrets; print(secrets.token_hex(32))">
+RAZORPAY_KEY_ID=rzp_test_xxxx
+RAZORPAY_KEY_SECRET=xxxx
+RAZORPAY_WEBHOOK_SECRET=xxxx
+GMAIL_USER=tirupurrunners@gmail.com
+GMAIL_APP_PASSWORD=xxxx
+FRONTEND_URL=https://dev.tirupurrunners.com
+DEBUG=False
+```
+
+> **Important:** If DB password contains `@`, URL-encode it as `%40` in DATABASE_URL.
+
+### 4.3 Create systemd service
+```bash
+nano /etc/systemd/system/tirupur-runners.service
+```
+```ini
+[Unit]
+Description=Tirupur Runners FastAPI Backend (Dev)
+After=network.target postgresql.service
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/tirupur-runners-platform/backend
+ExecStart=/var/www/tirupur-runners-platform/backend/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=3
+EnvironmentFile=/var/www/tirupur-runners-platform/backend/.env
+
+[Install]
+WantedBy=multi-user.target
+```
+```bash
+systemctl daemon-reload
+systemctl enable tirupur-runners
+systemctl start tirupur-runners
+systemctl status tirupur-runners
+```
+
+---
+
+## Part 5 — Frontend Build & Deploy
+
+### 5.1 Build on local Mac
+```bash
+cd /Users/thiyagesh/Documents/Code/tirupur-runners/frontend
+git checkout dev
+npm run build
+```
+
+### 5.2 Copy dist to VPS
+```bash
+scp -r dist root@129.121.87.71:/var/www/tirupur-runners-platform/frontend/
+```
+
+---
+
+## Part 6 — Nginx Configuration
+
+### 6.1 Dev server config
+```bash
+nano /etc/nginx/sites-available/tirupur-runners
+```
+```nginx
+server {
+    listen 80;
+    server_name dev.tirupurrunners.com;
+
+    root /var/www/tirupur-runners-platform/frontend/dist;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        client_max_body_size 10M;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+```bash
+ln -s /etc/nginx/sites-available/tirupur-runners /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+nginx -t
+systemctl reload nginx
+```
+
+### 6.2 Prod server config (when setting up prod)
+```bash
+nano /etc/nginx/sites-available/tirupur-runners-prod
+```
+```nginx
+server {
+    listen 80;
+    server_name tirupurrunners.com www.tirupurrunners.com;
+
+    root /var/www/tirupur-runners-prod/frontend/dist;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        client_max_body_size 10M;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+```bash
+ln -s /etc/nginx/sites-available/tirupur-runners-prod /etc/nginx/sites-enabled/
+nginx -t
+systemctl reload nginx
+```
+
+---
+
+## Part 7 — Firewall (iptables)
 
 ```bash
-cd backend
-alembic init alembic
-# Edit alembic/env.py to point to your models + DATABASE_URL
-alembic revision --autogenerate -m "initial schema"
-alembic upgrade head
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+apt install iptables-persistent -y
+netfilter-persistent save
 ```
 
 ---
 
-## Monitoring (Free Options)
+## Part 8 — SSL (Let's Encrypt)
 
-- **Render logs**: Built-in log streaming in dashboard
-- **Uptime**: https://uptimerobot.com (free, pings your /health endpoint)
-- **DB**: Neon dashboard shows query stats
+### 8.1 DNS records (add at domain registrar)
+| Type | Name | Value |
+|------|------|-------|
+| A | `@` | `129.121.87.71` |
+| A | `dev` | `129.121.87.71` |
+| A | `www` | `129.121.87.71` |
+
+### 8.2 Issue certificates
+```bash
+# Dev
+certbot --nginx -d dev.tirupurrunners.com
+
+# Prod (when ready)
+certbot --nginx -d tirupurrunners.com -d www.tirupurrunners.com
+```
+
+Certbot auto-renews via a systemd timer — no manual renewal needed.
 
 ---
 
-## Cost Summary (Monthly)
+## Part 9 — Data Migration (Local → VPS)
 
-| Service   | Free Tier               | Paid (recommended)      |
-|-----------|-------------------------|-------------------------|
-| Render    | Free (sleeps)           | $7/mo (always-on)       |
-| Neon      | 0.5GB free              | $19/mo (10GB)           |
-| Vercel    | Free forever            | —                       |
-| SendGrid  | 100 emails/day free     | $20/mo (50k emails)     |
-| Razorpay  | 2% per transaction      | —                       |
+### 9.1 Dump local DB (on Mac)
+```bash
+pg_dump -U thiyagesh -d tirupur_runners -F c -f /tmp/tirupur_runners.dump
+```
 
-**Minimum viable cost: ₹0/month** (free tiers)
-**Recommended: ~$7/month** (Render always-on = ~₹600/month)
+### 9.2 Copy dump to VPS
+```bash
+scp /tmp/tirupur_runners.dump root@129.121.87.71:/tmp/
+```
+
+### 9.3 Stop the app (prevents DB connections during restore)
+```bash
+systemctl stop tirupur-runners
+```
+
+### 9.4 Drop and recreate DB (clean slate)
+```bash
+sudo -u postgres psql -c "DROP DATABASE tirupur_runners_dev;"
+sudo -u postgres psql -c "CREATE DATABASE tirupur_runners_dev OWNER tirupur_dev;"
+```
+
+### 9.5 Restore
+```bash
+sudo -u postgres pg_restore -d tirupur_runners_dev --no-owner --role=tirupur_dev /tmp/tirupur_runners.dump
+```
+
+### 9.6 Start the app
+```bash
+systemctl start tirupur-runners
+```
+
+### 9.7 Verify row counts
+```bash
+sudo -u postgres psql -d tirupur_runners_dev -c "SELECT COUNT(*) FROM users;"
+sudo -u postgres psql -d tirupur_runners_dev -c "SELECT COUNT(*) FROM memberships;"
+sudo -u postgres psql -d tirupur_runners_dev -c "SELECT COUNT(*) FROM member_profiles;"
+```
+
+---
+
+## Part 10 — Deploying Updates
+
+### Backend update
+```bash
+cd /var/www/tirupur-runners-platform
+git pull origin dev
+systemctl restart tirupur-runners
+```
+
+### Frontend update (build on Mac, copy to VPS)
+```bash
+# On Mac
+cd /Users/thiyagesh/Documents/Code/tirupur-runners/frontend
+npm run build
+scp -r dist root@129.121.87.71:/var/www/tirupur-runners-platform/frontend/
+```
+
+---
+
+## Part 11 — Common Issues & Fixes
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `ModuleNotFoundError: No module named 'pkg_resources'` | Python 3.12 removed setuptools from stdlib | Add `setuptools==68.2.2` as first line in requirements.txt |
+| `socket.gaierror: Name or service not known` | `@` in DB password breaks URL parsing | URL-encode `@` as `%40` in DATABASE_URL |
+| `relation already exists` on pg_restore | App created tables before restore | Stop app → drop DB → recreate → restore |
+| `curl: Failed to connect port 80` | Firewall blocking port | Run iptables rules (Part 7) |
+| `E: Unable to locate package python3.11` | Ubuntu 24.04 ships Python 3.12 only | Use `python3` (3.12) — do not install 3.11 |
+| `database is being accessed by other users` | App connected during DROP | `systemctl stop tirupur-runners` first |
+
+---
+
+## Useful Commands
+
+```bash
+# Check service status
+systemctl status tirupur-runners
+
+# View live logs
+journalctl -u tirupur-runners -f
+
+# Restart backend
+systemctl restart tirupur-runners
+
+# Test Nginx config
+nginx -t
+
+# Reload Nginx
+systemctl reload nginx
+
+# Renew SSL manually (auto-renews but just in case)
+certbot renew
+
+# Check open ports
+ss -tlnp
+```

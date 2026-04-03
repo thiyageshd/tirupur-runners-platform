@@ -83,6 +83,7 @@ class Payment(Base):
     # Idempotency: user_id + year, prevents duplicate memberships
     idempotency_key = Column(String(100), unique=True, nullable=False, index=True)
     metadata_ = Column("metadata", JSON, nullable=True)
+    receipt_url = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 

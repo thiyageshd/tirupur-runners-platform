@@ -185,6 +185,7 @@ class AdminStatsResponse(BaseModel):
     total_members: int
     active_members: int
     expired_members: int
+    pending_members: int
     total_revenue_paise: int
 
 
@@ -219,6 +220,7 @@ class PaymentHistoryItem(BaseModel):
     idempotency_key: str
     amount_paise: int
     status: str
+    receipt_url: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
