@@ -1,0 +1,65 @@
+name: Deploy to Bluehost VPS (Prod)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "backend/**"
+      - ".github/workflows/deploy-bluehost-prod.yml"
+
+jobs:
+  deploy:
+    name: Deploy main → Bluehost VPS (Prod)
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.BLUEHOST_HOST }}
+          username: ${{ secrets.BLUEHOST_USER }}
+          key: ${{ secrets.BLUEHOST_SSH_KEY }}
+          port: 22
+          timeout: 180s
+          script: |
+            set -e
+            cd /var/www/tirupur-runners-prod
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "[1/4] Writing .env..."
+            cat > /var/www/tirupur-runners-prod/backend/.env << 'EOF'
+            DATABASE_URL=${{ secrets.BLUEHOST_DATABASE_URL }}
+            SECRET_KEY=${{ secrets.BLUEHOST_SECRET_KEY }}
+            RAZORPAY_KEY_ID=${{ secrets.BLUEHOST_RAZORPAY_KEY_ID }}
+            RAZORPAY_KEY_SECRET=${{ secrets.BLUEHOST_RAZORPAY_KEY_SECRET }}
+            RAZORPAY_WEBHOOK_SECRET=${{ secrets.BLUEHOST_RAZORPAY_WEBHOOK_SECRET }}
+            RESEND_API_KEY=${{ secrets.BLUEHOST_RESEND_API_KEY }}
+            GMAIL_USER=${{ secrets.BLUEHOST_GMAIL_USER }}
+            GMAIL_APP_PASSWORD=${{ secrets.BLUEHOST_GMAIL_APP_PASSWORD }}
+            FROM_EMAIL=noreply@tirupurrunners.com
+            FRONTEND_URL=https://tirupurrunners.com
+            MEMBERSHIP_AMOUNT_PAISE=200000
+            MEMBERSHIP_NEW_AMOUNT_PAISE=200000
+            MEMBERSHIP_RENEWAL_AMOUNT_PAISE=150000
+            PROTECTED_ADMIN_EMAILS=thiyagesh.d@gmail.com
+            DEBUG=False
+            MEDIA_BASE_URL=https://tirupurrunners.com
+            PAYMENT_TEST_AMOUNT_PAISE=0
+            EOF
+
+            echo "[2/4] Updating Python dependencies..."
+            cd /var/www/tirupur-runners-prod/backend
+            .venv/bin/pip install -r requirements.txt --quiet
+
+            echo "[3/4] Building frontend..."
+            cd /var/www/tirupur-runners-prod/frontend
+            npm ci --prefer-offline --silent
+            npm run build
+
+            echo "[4/4] Restarting backend..."
+            systemctl restart tirupur-runners-prod
+            systemctl is-active tirupur-runners-prod
+            echo "✓ Prod deploy complete"
