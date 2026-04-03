@@ -26,13 +26,27 @@ class MembershipService:
         return result.scalar_one_or_none()
 
     async def get_latest_membership(self, user_id) -> Optional[Membership]:
+        # Prefer active/expired (paid) over pending (payment not yet confirmed)
+        result = await self.db.execute(
+            select(Membership)
+            .where(
+                Membership.user_id == user_id,
+                Membership.status.in_(["active", "expired"]),
+            )
+            .order_by(Membership.year.desc())
+            .limit(1)
+        )
+        membership = result.scalars().first()
+        if membership:
+            return membership
+        # Fall back to pending only if no paid membership exists (first-time member)
         result = await self.db.execute(
             select(Membership)
             .where(Membership.user_id == user_id)
             .order_by(Membership.created_at.desc())
             .limit(1)
         )
-        return result.scalar_one_or_none()
+        return result.scalars().first()
 
     async def create_pending_membership(self, user_id, year: int) -> Membership:
         """Creates a pending membership — activated on payment success."""
@@ -43,6 +57,17 @@ class MembershipService:
                 status_code=409,
                 detail=f"Active membership exists until {existing.end_date}",
             )
+        # Reuse existing pending membership for same year (idempotent on retry)
+        pending_result = await self.db.execute(
+            select(Membership).where(
+                Membership.user_id == user_id,
+                Membership.year == year,
+                Membership.status == "pending",
+            )
+        )
+        existing_pending = pending_result.scalars().first()
+        if existing_pending:
+            return existing_pending
         # Membership runs Apr 1 → Mar 31 of following year
         start_date = date(year, 4, 1)
         end_date = date(year + 1, 3, 31)
