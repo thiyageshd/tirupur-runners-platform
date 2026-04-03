@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
 import FormField from '../components/ui/FormField'
 import { authApi } from '../api'
 import { useAuthStore } from '../store/authStore'
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [otpSent, setOtpSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const { setToken, fetchMe } = useAuthStore()
   const navigate = useNavigate()
 
@@ -118,13 +119,22 @@ export default function LoginPage() {
                 />
               </FormField>
               <FormField label="Password" required error={errors.password?.message}>
-                <input
-                  type="password"
-                  className="input-field"
-                  placeholder="Your password"
-                  autoComplete="current-password"
-                  {...register('password', { required: 'Password is required' })}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="input-field pr-10"
+                    placeholder="Your password"
+                    autoComplete="current-password"
+                    {...register('password', { required: 'Password is required' })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </FormField>
               <button type="submit" className="btn-primary w-full mt-1" disabled={loading}>
                 {loading ? <><Loader2 size={16} className="animate-spin" /> Signing in…</> : 'Sign In'}
