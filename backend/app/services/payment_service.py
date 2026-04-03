@@ -43,7 +43,7 @@ class PaymentService:
                 Payment.status == "paid",
             )
         )
-        if result.scalar_one_or_none() is not None:
+        if result.scalars().first() is not None:
             return True
         # Also treat imported members (expired membership, no payment record) as renewals
         result = await self.db.execute(
@@ -52,7 +52,7 @@ class PaymentService:
                 Membership.status.in_(["expired", "active"]),
             )
         )
-        return result.scalar_one_or_none() is not None
+        return result.scalars().first() is not None
 
     async def create_order(self, user_id, year: int) -> dict:
         """
