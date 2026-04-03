@@ -9,3 +9,6 @@
 .DS_Store
 *dist/
 *.env*
+*uploads/
+*testing-login-payments.md
+testing-login-payments.docx 

@@ -36,11 +36,20 @@ class PaymentService:
         return result.scalar_one_or_none()
 
     async def _has_prior_paid_membership(self, user_id) -> bool:
-        """Returns True if the user has ever had a paid membership."""
+        """Returns True if the user is an existing member (paid before or has an expired/active membership)."""
         result = await self.db.execute(
             select(Payment).where(
                 Payment.user_id == user_id,
                 Payment.status == "paid",
+            )
+        )
+        if result.scalar_one_or_none() is not None:
+            return True
+        # Also treat imported members (expired membership, no payment record) as renewals
+        result = await self.db.execute(
+            select(Membership).where(
+                Membership.user_id == user_id,
+                Membership.status.in_(["expired", "active"]),
             )
         )
         return result.scalar_one_or_none() is not None
