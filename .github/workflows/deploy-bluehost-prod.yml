@@ -25,16 +25,6 @@ jobs:
           timeout: 180s
           script: |
             set -e
-
-            # Clone repo if first deploy, otherwise pull latest
-            if [ ! -d /var/www/tirupur-runners-prod ]; then
-              echo "[0/4] First deploy — cloning main branch..."
-              git clone -b main https://github.com/${{ github.repository }}.git /var/www/tirupur-runners-prod
-              cd /var/www/tirupur-runners-prod/backend
-              python3 -m venv .venv
-              .venv/bin/pip install --upgrade pip setuptools==68.2.2 --quiet
-            fi
-
             cd /var/www/tirupur-runners-prod
             git fetch origin
             git reset --hard origin/main
