@@ -24,33 +24,32 @@
 
 ```
 User Browser
-     │
-     ▼
-Cloudflare (DNS only — no proxy)
-     │
-     ▼
-Bluehost VPS  129.121.87.71  (Ubuntu 24.04)
-     │
-     ├── Nginx (reverse proxy)
-     │     ├── tirupurrunners.com       → localhost:8001 (prod backend)
-     │     │   /uploads/               → /var/www/tirupur-runners-prod/backend/uploads/
-     │     │   /  (static)             → /var/www/tirupur-runners-prod/frontend/dist/
-     │     │
-     │     └── dev.tirupurrunners.com  → localhost:8000 (dev backend)
-     │           /uploads/             → /var/www/tirupur-runners-platform/backend/uploads/
-     │           /  (static)           → /var/www/tirupur-runners-platform/frontend/dist/
-     │
-     ├── FastAPI (uvicorn) — dev   port 8000
-     ├── FastAPI (uvicorn) — prod  port 8001
-     │
-     └── PostgreSQL 16
-           ├── tirupur_runners_dev   (dev DB)
-           └── tirupur_runners_prod  (prod DB)
+     |
+     v
+Cloudflare (DNS-only / grey cloud)
+     |
+     v
+Bluehost VPS (129.121.87.71) — Ubuntu 24.04
+     ├─ Nginx (reverse proxy)
+     │   ├─ tirupurrunners.com  -> localhost:8001 (prod backend)
+     │   │    ├─ /uploads/  -> /var/www/tirupur-runners-prod/backend/uploads/
+     │   │    └─ / (static) -> /var/www/tirupur-runners-prod/frontend/dist/
+     │   └─ dev.tirupurrunners.com -> localhost:8000 (dev backend)
+     │        ├─ /uploads/  -> /var/www/tirupur-runners-platform/backend/uploads/
+     │        └─ / (static) -> /var/www/tirupur-runners-platform/frontend/dist/
+     |
+     ├─ FastAPI (uvicorn)
+     │    ├─ dev instance : port 8000
+     │    └─ prod instance: port 8001
+     |
+     └─ PostgreSQL 16
+                ├─ tirupur_runners_dev
+                └─ tirupur_runners_prod
 
-External services
-  ├── Resend.com       — transactional email
-  ├── Razorpay         — payment gateway
-  └── GitHub Actions   — CI/CD deployments
+External services:
+     - Resend (transactional email)
+     - Razorpay (payment gateway)
+     - GitHub Actions (CI/CD)
 ```
 
 **Stack**
