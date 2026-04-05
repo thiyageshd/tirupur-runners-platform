@@ -6,7 +6,7 @@ import FormField from '../components/ui/FormField'
 import DOBPicker from '../components/ui/DOBPicker'
 import { authApi, apiClient } from '../api'
 
-const STEPS = ['Account', 'Personal Info', 'Documents']
+const STEPS = ['Account', 'Personal Info', 'Runner Profile', 'Documents']
 
 function computeAge(dob) {
   if (!dob) return null
@@ -45,7 +45,8 @@ export default function RegisterPage() {
   const STEP_FIELDS = [
     ['full_name', 'email', 'password', 'confirm_password'],
     ['phone', 'dob', 'gender', 't_shirt_size', 'ec_ref_name', 'ec_ref_phone', 'member_ref_name', 'member_ref_phone'],
-    [],
+    ['blood_group'], // Runner Profile — blood group is required
+    [], // Documents
   ]
 
   const nextStep = async () => {
@@ -134,13 +135,20 @@ export default function RegisterPage() {
         headers: { Authorization: `Bearer ${tempToken}` },
       })
 
-      // 4. Save optional profile extras
-      if (data.blood_group || data.strava_link) {
+      // 4. Save optional runner profile fields
+      const profileData = {
+        blood_group: data.blood_group || undefined,
+        strava_link: data.strava_link || undefined,
+        profession: data.profession || undefined,
+        work_details: data.work_details || undefined,
+        interests: data.interests || undefined,
+        bio: data.bio || undefined,
+      }
+      if (Object.values(profileData).some(Boolean)) {
         try {
-          await apiClient.put('/auth/me/profile', {
-            blood_group: data.blood_group || undefined,
-            strava_link: data.strava_link || undefined,
-          }, { headers: { Authorization: `Bearer ${tempToken}` } })
+          await apiClient.put('/auth/me/profile', profileData, {
+            headers: { Authorization: `Bearer ${tempToken}` },
+          })
         } catch {
           // Non-critical
         }
@@ -366,25 +374,6 @@ export default function RegisterPage() {
                   </FormField>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField label="Blood Group" required error={errors.blood_group?.message}>
-                    <select className="input-field" {...register('blood_group', { required: 'Blood group is required' })}>
-                      <option value="">Select</option>
-                      {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
-                        <option key={bg} value={bg}>{bg}</option>
-                      ))}
-                    </select>
-                  </FormField>
-
-                  <FormField label="Strava Profile" error={errors.strava_link?.message}>
-                    <input
-                      className="input-field"
-                      placeholder="strava.com/athletes/... (optional)"
-                      {...register('strava_link')}
-                    />
-                  </FormField>
-                </div>
-
                 <FormField label="Address" error={errors.address?.message}>
                   <textarea
                     className="input-field resize-none"
@@ -516,8 +505,85 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Step 2 — Documents */}
+            {/* Step 2 — Runner Profile */}
             {step === 2 && (
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h2 className="font-semibold text-gray-900 text-lg mb-0.5">Runner profile</h2>
+                  <p className="text-xs text-gray-400">All fields are optional — you can fill these in later from your dashboard.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Blood Group" required error={errors.blood_group?.message}>
+                    <select className="input-field" {...register('blood_group', { required: 'Blood group is required' })}>
+                      <option value="">Select</option>
+                      {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                        <option key={bg} value={bg}>{bg}</option>
+                      ))}
+                    </select>
+                  </FormField>
+
+                  <FormField label="Profession" error={errors.profession?.message}>
+                    <input
+                      className="input-field"
+                      placeholder="e.g. Software Engineer"
+                      {...register('profession')}
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="Work Details" error={errors.work_details?.message}>
+                  <input
+                    className="input-field"
+                    placeholder="e.g. Company or role details"
+                    {...register('work_details')}
+                  />
+                </FormField>
+
+                <FormField label="Interests" error={errors.interests?.message}>
+                  <input
+                    className="input-field"
+                    placeholder="e.g. Trail running, cycling, yoga"
+                    {...register('interests')}
+                  />
+                </FormField>
+
+                <FormField label="Bio" error={errors.bio?.message}>
+                  <textarea
+                    className="input-field resize-none"
+                    rows={3}
+                    placeholder="Tell us a little about yourself…"
+                    {...register('bio')}
+                  />
+                </FormField>
+
+                <FormField label="Strava Profile" error={errors.strava_link?.message}>
+                  <input
+                    className="input-field"
+                    placeholder="strava.com/athletes/... (optional)"
+                    {...register('strava_link')}
+                  />
+                </FormField>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex gap-3 mt-2">
+                  <button type="button" className="btn-outline flex-1" onClick={() => setStep(1)} disabled={loading}>
+                    ← Back
+                  </button>
+                  <button type="button" className="btn-primary flex-1" onClick={nextStep}>
+                    Continue →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3 — Documents */}
+            {step === 3 && (
               <div className="flex flex-col gap-5">
                 <div>
                   <h2 className="font-semibold text-gray-900 text-lg mb-1">Upload documents</h2>
@@ -587,7 +653,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     className="btn-outline flex-1"
-                    onClick={() => setStep(1)}
+                    onClick={() => setStep(2)}
                     disabled={loading}
                   >
                     ← Back

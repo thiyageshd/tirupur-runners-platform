@@ -97,7 +97,12 @@ async def run(file_path: str, year: int, dry_run: bool):
             row = {k.lower().strip(): v for k, v in row.items()}
 
             email = row.get("email", "").lower().strip()
+            # Handle numeric phone values from Excel (e.g. 9994472727.0 → '9994472727')
             phone_raw = row.get("phone", row.get("mobile", "")).strip()
+            try:
+                phone_raw = str(int(float(phone_raw))) if phone_raw else ""
+            except (ValueError, TypeError):
+                pass
             ec_title = row.get("ec_title", row.get("title", "EC Member")).strip()
             ec_fy = row.get("ec_fy", row.get("fy", f"{year}/{str(year + 1)[-2:]}")).strip()
 
@@ -122,9 +127,9 @@ async def run(file_path: str, year: int, dry_run: bool):
                 select(Membership).where(
                     Membership.user_id == user.id,
                     Membership.year == year,
-                )
+                ).order_by(Membership.created_at.desc())
             )
-            membership = result.scalar_one_or_none()
+            membership = result.scalars().first()
             if not membership:
                 print(f"  Row {i}: No membership for {user.full_name} in year {year}")
                 not_found_membership += 1
