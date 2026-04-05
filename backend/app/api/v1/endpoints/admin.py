@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 
 from app.db.session import get_db
-from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult, TshirtUpdateRequest, PendingUserItem, MembershipIdUpdateRequest, AadharUploadRequest
+from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult, TshirtUpdateRequest, PendingUserItem, MembershipIdUpdateRequest, AadharUploadRequest, AdminUserUpdate
 from app.services.membership_service import MembershipService
 from app.models.models import User, Membership, Payment, MemberProfile
 from app.core.security import get_current_admin
@@ -280,6 +280,37 @@ async def update_tshirt(
     return user
 
 
+@router.put("/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: uuid_module.UUID,
+    data: AdminUserUpdate,
+    current_admin=Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if data.full_name is not None:
+        user.full_name = data.full_name
+    if data.email is not None:
+        user.email = data.email
+    if data.phone is not None:
+        user.phone = data.phone
+    if data.age is not None:
+        user.age = data.age
+    if data.gender is not None:
+        user.gender = data.gender
+    if data.t_shirt_size is not None:
+        user.t_shirt_size = data.t_shirt_size
+    if data.emergency_contact is not None:
+        user.emergency_contact = data.emergency_contact
+    if data.emergency_phone is not None:
+        user.emergency_phone = data.emergency_phone
+    await db.flush()
+    return user
+
+
 @router.put("/users/{user_id}/toggle-admin", response_model=UserResponse)
 async def toggle_admin(
     user_id: uuid_module.UUID,
@@ -348,6 +379,21 @@ async def get_rejected_users(
             t_shirt_size=u.t_shirt_size,
             created_at=u.created_at,
             aadhar_url=u.profile.aadhar_url if u.profile else None,
+            address=u.address,
+            emergency_contact=u.emergency_contact,
+            emergency_phone=u.emergency_phone,
+            dob=u.dob,
+            ec_ref_name=u.ec_ref_name,
+            ec_ref_phone=u.ec_ref_phone,
+            member_ref_name=u.member_ref_name,
+            member_ref_phone=u.member_ref_phone,
+            blood_group=u.profile.blood_group if u.profile else None,
+            strava_link=u.profile.strava_link if u.profile else None,
+            photo_url=u.profile.photo_url if u.profile else None,
+            profession=u.profile.profession if u.profile else None,
+            work_details=u.profile.work_details if u.profile else None,
+            interests=u.profile.interests if u.profile else None,
+            bio=u.profile.bio if u.profile else None,
         )
         for u in users
     ]
@@ -375,6 +421,21 @@ async def get_pending_users(
             t_shirt_size=u.t_shirt_size,
             created_at=u.created_at,
             aadhar_url=u.profile.aadhar_url if u.profile else None,
+            address=u.address,
+            emergency_contact=u.emergency_contact,
+            emergency_phone=u.emergency_phone,
+            dob=u.dob,
+            ec_ref_name=u.ec_ref_name,
+            ec_ref_phone=u.ec_ref_phone,
+            member_ref_name=u.member_ref_name,
+            member_ref_phone=u.member_ref_phone,
+            blood_group=u.profile.blood_group if u.profile else None,
+            strava_link=u.profile.strava_link if u.profile else None,
+            photo_url=u.profile.photo_url if u.profile else None,
+            profession=u.profile.profession if u.profile else None,
+            work_details=u.profile.work_details if u.profile else None,
+            interests=u.profile.interests if u.profile else None,
+            bio=u.profile.bio if u.profile else None,
         )
         for u in users
     ]

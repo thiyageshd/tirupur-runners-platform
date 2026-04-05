@@ -1,11 +1,23 @@
 import { useState, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { Eye, EyeOff, Clock, Loader2, FileText, X } from 'lucide-react'
 import FormField from '../components/ui/FormField'
+import DOBPicker from '../components/ui/DOBPicker'
 import { authApi, apiClient } from '../api'
 
 const STEPS = ['Account', 'Personal Info', 'Documents']
+
+function computeAge(dob) {
+  if (!dob) return null
+  const today = new Date()
+  const birth = new Date(dob)
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+  return age
+}
+
 
 export default function RegisterPage() {
   const [step, setStep] = useState(0)
@@ -14,6 +26,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [refValidated, setRefValidated] = useState(null) // { ec_name, member_name }
 
   const [aadharDataUrl, setAadharDataUrl] = useState(null)
   const [aadharMeta, setAadharMeta] = useState(null) // { name, type }
@@ -25,12 +38,13 @@ export default function RegisterPage() {
     handleSubmit,
     trigger,
     watch,
+    control,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
   const STEP_FIELDS = [
     ['full_name', 'email', 'password', 'confirm_password'],
-    ['phone', 'age', 'gender', 't_shirt_size'],
+    ['phone', 'dob', 'gender', 't_shirt_size', 'ec_ref_name', 'ec_ref_phone', 'member_ref_name', 'member_ref_phone'],
     [],
   ]
 
@@ -55,6 +69,17 @@ export default function RegisterPage() {
           setError('This phone number is already registered. Please login instead.')
           return
         }
+      }
+      // Validate references against DB
+      try {
+        const res = await authApi.validateRefs({
+          ec_ref_phone: watch('ec_ref_phone'),
+          member_ref_phone: watch('member_ref_phone'),
+        })
+        setRefValidated(res.data)
+      } catch (err) {
+        setError(err.response?.data?.detail || 'Reference validation failed. Please check the phone numbers.')
+        return
       }
     }
     setError('')
@@ -93,8 +118,11 @@ export default function RegisterPage() {
     setError('')
     let userCreated = false
     try {
+      // Compute age from dob
+      const age = computeAge(data.dob)
+
       // 1. Register user
-      await authApi.register(data)
+      await authApi.register({ ...data, age })
       userCreated = true
 
       // 2. Get temp token for uploads only — do NOT store in auth state (no auto-login)
@@ -151,6 +179,9 @@ export default function RegisterPage() {
       </div>
     )
   }
+
+  const watchedDob = watch('dob')
+  const computedAge = computeAge(watchedDob)
 
   return (
     <div className="min-h-screen pt-20 pb-12 px-4 bg-gray-50">
@@ -289,20 +320,25 @@ export default function RegisterPage() {
                     />
                   </FormField>
 
-                  <FormField label="Age" required error={errors.age?.message}>
-                    <input
-                      type="number"
-                      className="input-field"
-                      placeholder="28"
-                      {...register('age', {
-                        required: 'Age is required',
-                        min: { value: 5, message: 'Min age 5' },
-                        max: { value: 100, message: 'Max age 100' },
-                        valueAsNumber: true,
-                      })}
+                  <FormField label="Date of Birth" required error={errors.dob?.message}>
+                    <Controller
+                      name="dob"
+                      control={control}
+                      rules={{ required: 'Date of birth is required' }}
+                      render={({ field }) => (
+                        <DOBPicker value={field.value || ''} onChange={field.onChange} error={!!errors.dob} />
+                      )}
                     />
                   </FormField>
                 </div>
+
+                {/* Auto-computed age display */}
+                {computedAge !== null && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg">
+                    <span className="text-xs text-blue-600 font-medium">Age:</span>
+                    <span className="text-sm font-bold text-blue-800">{computedAge} years</span>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField label="Gender" required error={errors.gender?.message}>
@@ -390,6 +426,68 @@ export default function RegisterPage() {
                       {...register('emergency_phone_2')}
                     />
                   </FormField>
+                </div>
+
+                {/* References section */}
+                <div className="border-t border-gray-100 pt-4">
+                  <p className="text-sm font-semibold text-gray-800 mb-1">
+                    Member References <span className="text-red-500">*</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Provide one EC (Executive Committee) member and one existing club member who can vouch for you.
+                    Their phone numbers will be verified against our records.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <FormField label="EC Member Name" required error={errors.ec_ref_name?.message}>
+                      <input
+                        className="input-field"
+                        placeholder="Full name"
+                        {...register('ec_ref_name', { required: 'EC member name is required', minLength: { value: 2, message: 'Too short' } })}
+                      />
+                    </FormField>
+                    <FormField label="EC Member Phone" required error={errors.ec_ref_phone?.message}>
+                      <input
+                        className="input-field"
+                        placeholder="10-digit phone"
+                        {...register('ec_ref_phone', {
+                          required: 'EC member phone is required',
+                          minLength: { value: 10, message: 'Enter a valid 10-digit phone' },
+                        })}
+                      />
+                    </FormField>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label="Member Name" required error={errors.member_ref_name?.message}>
+                      <input
+                        className="input-field"
+                        placeholder="Full name"
+                        {...register('member_ref_name', { required: 'Member name is required', minLength: { value: 2, message: 'Too short' } })}
+                      />
+                    </FormField>
+                    <FormField label="Member Phone" required error={errors.member_ref_phone?.message}>
+                      <input
+                        className="input-field"
+                        placeholder="10-digit phone"
+                        {...register('member_ref_phone', {
+                          required: 'Member phone is required',
+                          minLength: { value: 10, message: 'Enter a valid 10-digit phone' },
+                        })}
+                      />
+                    </FormField>
+                  </div>
+
+                  {refValidated && (
+                    <div className="mt-2 flex flex-col gap-1">
+                      <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                        ✓ EC Member: <strong>{refValidated.ec_name}</strong>
+                      </p>
+                      <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                        ✓ Member: <strong>{refValidated.member_name}</strong>
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {error && (

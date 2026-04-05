@@ -144,6 +144,21 @@ class MembershipService:
                 "end_date": membership.end_date,
                 "created_at": user.created_at,
                 "aadhar_url": profile.aadhar_url if profile else None,
+                "dob": user.dob,
+                "address": user.address,
+                "emergency_contact": user.emergency_contact,
+                "emergency_phone": user.emergency_phone,
+                "emergency_contact_2": user.emergency_contact_2,
+                "emergency_phone_2": user.emergency_phone_2,
+                "ec_ref_name": user.ec_ref_name,
+                "ec_ref_phone": user.ec_ref_phone,
+                "member_ref_name": user.member_ref_name,
+                "member_ref_phone": user.member_ref_phone,
+                "is_ec_member": membership.is_ec_member,
+                "ec_title": membership.ec_title,
+                "ec_fy": membership.ec_fy,
+                "blood_group": profile.blood_group if profile else None,
+                "strava_link": profile.strava_link if profile else None,
             })
         return members
 

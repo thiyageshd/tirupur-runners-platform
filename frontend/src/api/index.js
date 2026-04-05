@@ -32,6 +32,7 @@ apiClient.interceptors.response.use(
 export const authApi = {
   checkEmail: (email) => apiClient.get('/auth/check-email', { params: { email } }),
   checkPhone: (phone) => apiClient.get('/auth/check-phone', { params: { phone } }),
+  validateRefs: (data) => apiClient.post('/auth/validate-references', data),
   register: (data) => apiClient.post('/auth/register', data),
   login: (data) => apiClient.post('/auth/login', data),
   requestOtp: (email) => apiClient.post('/auth/otp/request', { email }),
@@ -90,6 +91,7 @@ export const adminApi = {
   replaceAadhar: (userId, aadhar_data) =>
     apiClient.put(`/admin/users/${userId}/aadhar`, { aadhar_data }),
   syncPayment: (userId) => apiClient.post(`/admin/users/${userId}/sync-payment`),
+  updateUser: (userId, data) => apiClient.put(`/admin/users/${userId}`, data),
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────

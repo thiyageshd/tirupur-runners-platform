@@ -78,6 +78,11 @@ class UserService:
             hashed_password=hash_password(data.password) if data.password else None,
             otp_secret=pyotp.random_base32(),
             account_status="pending_approval",
+            dob=data.dob,
+            ec_ref_name=data.ec_ref_name,
+            ec_ref_phone=data.ec_ref_phone,
+            member_ref_name=data.member_ref_name,
+            member_ref_phone=data.member_ref_phone,
         )
         self.db.add(user)
         await self.db.flush()
