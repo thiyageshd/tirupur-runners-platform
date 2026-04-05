@@ -28,6 +28,11 @@ class User(Base):
     emergency_phone = Column(String(20), nullable=True)
     emergency_contact_2 = Column(String(200), nullable=True)
     emergency_phone_2 = Column(String(20), nullable=True)
+    dob = Column(Date, nullable=True)
+    ec_ref_name = Column(String(200), nullable=True)
+    ec_ref_phone = Column(String(20), nullable=True)
+    member_ref_name = Column(String(200), nullable=True)
+    member_ref_phone = Column(String(20), nullable=True)
     account_status = Column(String(20), nullable=False, default="approved")
     t_shirt_size = Column(String(10), nullable=True)
     hashed_password = Column(String(255), nullable=True)
@@ -61,6 +66,9 @@ class Membership(Base):
     # active | expired | pending
     status = Column(String(20), nullable=False, default="pending")
     year = Column(Integer, nullable=False)
+    is_ec_member = Column(Boolean, default=False, nullable=False, server_default="false")
+    ec_title = Column(String(100), nullable=True)
+    ec_fy = Column(String(10), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     user = relationship("User", back_populates="memberships")

@@ -391,28 +391,32 @@ export default function DashboardPage() {
         {/* Profile card with tabs */}
         <div className="card mb-6">
           {/* Tab bar */}
-          <div className="flex items-center border-b border-gray-100 -mx-6 px-6 mb-5">
-            {PROFILE_TABS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => { setProfileTab(key); setEditing(false) }}
-                className={`text-sm font-medium px-4 py-3 border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                  profileTab === key
-                    ? 'border-brand-600 text-brand-700'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-            {profileTab !== 'payments' && !editing && (
-              <button
-                onClick={startEditing}
-                className="ml-auto flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium py-3"
-              >
-                <Pencil size={14} /> Edit
-              </button>
-            )}
+          <div className="border-b border-gray-100 -mx-6 px-6 mb-5">
+            <div className="flex items-center justify-between">
+              <div className="flex">
+                {PROFILE_TABS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => { setProfileTab(key); setEditing(false) }}
+                    className={`text-sm font-medium px-4 py-3 border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                      profileTab === key
+                        ? 'border-brand-600 text-brand-700'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {profileTab !== 'payments' && !editing && (
+                <button
+                  onClick={startEditing}
+                  className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium py-3 px-2"
+                >
+                  <Pencil size={14} /> Edit
+                </button>
+              )}
+            </div>
           </div>
 
           {/* ── Tab 1: User Profile ── */}
