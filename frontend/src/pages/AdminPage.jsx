@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Download, Users, TrendingUp, XCircle, Clock, Loader2,
   Crown, Shield, ShieldOff, Upload, MessageSquare, Settings, CheckCircle2,
-  Pencil, Check, X, UserCheck, UserX, FileText, RefreshCw,
+  Pencil, Check, X, UserCheck, UserX, FileText, RefreshCw, ChevronDown,
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { adminApi, settingsApi } from '../api'
@@ -17,8 +17,13 @@ const STATUS_BADGE = {
 
 const TABS = ['Members', 'Approvals', 'Rejected', 'Inactive Members', 'Offline Payments', 'SMS', 'Settings']
 
-// Emails that can never be deleted via the admin panel
-const PROTECTED_ADMINS = ['thiyagesh.d@gmail.com']
+// Emails whose admin status can never be changed and who can never be deleted
+const PROTECTED_ADMINS = [
+  'thiyagesh.d@gmail.com',
+  'nandu@cbcexim.com',
+  'dhanaa78@yahoo.co.in',
+  'thirumurugan7786@gmail.com',
+]
 
 const SMS_TEMPLATES = {
   'Renewal Reminder': 'Hi {name}, your Tirupur Runners membership expires soon. Renew at https://tirupurrunners.in',
@@ -53,6 +58,7 @@ export default function AdminPage() {
   // Approvals tab
   const [pendingUsers, setPendingUsers] = useState([])
   const [pendingLoading, setPendingLoading] = useState(false)
+  const [expandedApprovals, setExpandedApprovals] = useState(new Set())
   const [inactiveMembers, setInactiveMembers] = useState([])
   const [inactiveLoading, setInactiveLoading] = useState(false)
   const [approvingUser, setApprovingUser] = useState(null)
@@ -60,6 +66,13 @@ export default function AdminPage() {
   const [deletingUser, setDeletingUser] = useState(null)
   const [syncingPayment, setSyncingPayment] = useState(null)
   const [deleteToast, setDeleteToast] = useState(false)
+
+  // Edit user modal
+  const [editingUser, setEditingUser] = useState(null) // member object
+  const [modalTab, setModalTab] = useState('view')     // 'view' | 'edit'
+  const [editForm, setEditForm] = useState({})
+  const [savingUser, setSavingUser] = useState(false)
+  const [editError, setEditError] = useState('')
 
   // Rejected tab
   const [rejectedUsers, setRejectedUsers] = useState([])
@@ -339,6 +352,10 @@ export default function AdminPage() {
     try {
       await adminApi.toggleAdmin(member.user_id)
       await loadData()
+      // Keep edit modal in sync if open for this user
+      if (editingUser?.user_id === member.user_id) {
+        setEditingUser((prev) => prev ? { ...prev, is_admin: !prev.is_admin } : null)
+      }
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to toggle admin')
     } finally {
@@ -406,7 +423,8 @@ export default function AdminPage() {
     !search ||
     m.full_name.toLowerCase().includes(search.toLowerCase()) ||
     m.email.toLowerCase().includes(search.toLowerCase()) ||
-    m.phone.includes(search)
+    m.phone.includes(search) ||
+    (m.blood_group && m.blood_group.toLowerCase().includes(search.toLowerCase()))
   )
 
   const STAT_CARDS = stats
@@ -424,6 +442,44 @@ export default function AdminPage() {
         },
       ]
     : []
+
+  const openEditUser = (m) => {
+    setEditingUser(m)
+    setModalTab('view')
+    setEditForm({
+      full_name: m.full_name,
+      email: m.email,
+      phone: m.phone,
+      age: m.age,
+      gender: m.gender,
+      t_shirt_size: m.t_shirt_size || '',
+      emergency_contact: m.emergency_contact || '',
+      emergency_phone: m.emergency_phone || '',
+    })
+    setEditError('')
+  }
+
+  const handleSaveUser = async () => {
+    setSavingUser(true)
+    setEditError('')
+    try {
+      await adminApi.updateUser(editingUser.user_id, {
+        ...editForm,
+        age: editForm.age ? parseInt(editForm.age) : undefined,
+        t_shirt_size: editForm.t_shirt_size || null,
+        emergency_contact: editForm.emergency_contact || null,
+        emergency_phone: editForm.emergency_phone || null,
+      })
+      setMembers((prev) => prev.map((m) =>
+        m.user_id === editingUser.user_id ? { ...m, ...editForm } : m
+      ))
+      setEditingUser(null)
+    } catch (err) {
+      setEditError(err.response?.data?.detail || 'Failed to save. Try again.')
+    } finally {
+      setSavingUser(false)
+    }
+  }
 
   const smsRecipientCount = smsRecipient === 'All'
     ? stats?.total_members
@@ -537,7 +593,7 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
-                      {['Name', 'Email', 'Phone', 'Age', 'Gender', 'T-Shirt', 'Member ID', 'Aadhar', 'Status', 'Year', 'Valid Until', 'Joined', 'Admin'].map((h) => (
+                      {['Name', 'Email', 'Phone', 'Age', 'Gender', 'BG', 'T-Shirt', 'Member ID', 'Aadhar', 'Status', 'Valid Until', 'Admin'].map((h) => (
                         <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                           {h}
                         </th>
@@ -547,21 +603,25 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-gray-50">
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={13} className="text-center py-12 text-gray-400">No members found</td>
+                        <td colSpan={12} className="text-center py-12 text-gray-400">No members found</td>
                       </tr>
                     ) : (
                       filtered.map((m) => (
                         <tr key={`${m.user_id}`} className="hover:bg-gray-50 transition-colors">
                           <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
-                            <span className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => openEditUser(m)}
+                              className="flex items-center gap-1.5 text-left hover:text-brand-600 hover:underline"
+                            >
                               {m.is_admin && <Crown size={12} className="text-amber-500" />}
                               {m.full_name}
-                            </span>
+                            </button>
                           </td>
                           <td className="px-4 py-3 text-gray-600">{m.email}</td>
                           <td className="px-4 py-3 text-gray-600">{m.phone}</td>
                           <td className="px-4 py-3 text-gray-600">{m.age}</td>
                           <td className="px-4 py-3 text-gray-600 capitalize">{m.gender}</td>
+                          <td className="px-4 py-3 text-gray-600">{m.blood_group || '—'}</td>
                           <td className="px-4 py-3">
                             {editingTshirt === m.user_id ? (
                               <span className="flex items-center gap-1">
@@ -688,32 +748,34 @@ export default function AdminPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-gray-600">{m.membership_year}</td>
                           <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                             {m.end_date ? format(new Date(m.end_date), 'dd MMM yyyy') : '—'}
-                          </td>
-                          <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
-                            {m.created_at ? format(new Date(m.created_at), 'dd MMM yyyy') : '—'}
                           </td>
                           <td className="px-4 py-3">
                             {m.user_id !== user?.id && (
                               <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleToggleAdmin(m)}
-                                  disabled={togglingAdmin === m.user_id}
-                                  title={m.is_admin ? 'Remove admin' : 'Make admin'}
-                                  className={`p-1.5 rounded-lg transition-colors ${
-                                    m.is_admin
-                                      ? 'text-amber-500 hover:bg-amber-50'
-                                      : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
-                                  }`}
-                                >
-                                  {togglingAdmin === m.user_id
-                                    ? <Loader2 size={14} className="animate-spin" />
-                                    : m.is_admin
-                                    ? <ShieldOff size={14} />
-                                    : <Shield size={14} />}
-                                </button>
+                                {PROTECTED_ADMINS.includes(m.email?.toLowerCase()) ? (
+                                  <span title="Protected admin" className="p-1.5 text-amber-400">
+                                    <Crown size={14} />
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleToggleAdmin(m)}
+                                    disabled={togglingAdmin === m.user_id}
+                                    title={m.is_admin ? 'Remove admin' : 'Make admin'}
+                                    className={`p-1.5 rounded-lg transition-colors ${
+                                      m.is_admin
+                                        ? 'text-amber-500 hover:bg-amber-50'
+                                        : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                                    }`}
+                                  >
+                                    {togglingAdmin === m.user_id
+                                      ? <Loader2 size={14} className="animate-spin" />
+                                      : m.is_admin
+                                      ? <ShieldOff size={14} />
+                                      : <Shield size={14} />}
+                                  </button>
+                                )}
                                 {m.account_status === 'approved' && m.membership_status === 'pending' && PROTECTED_ADMINS.includes(user?.email?.toLowerCase()) && (
                                   <button
                                     onClick={() => handleDelete(m.user_id)}
@@ -762,28 +824,44 @@ export default function AdminPage() {
                 <p className="text-sm">No pending registrations</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {pendingUsers.map((u) => (
-                  <div key={u.id} className="p-4 bg-gray-50 rounded-xl">
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 text-sm">{u.full_name}</p>
-                        <p className="text-xs text-gray-500 truncate">{u.email} · {u.phone}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Age {u.age} · {u.gender}
-                          {u.t_shirt_size && ` · ${u.t_shirt_size}`}
-                          {u.created_at && ` · Registered ${format(new Date(u.created_at), 'dd MMM yyyy')}`}
+              <div className="space-y-3">
+                {pendingUsers.map((u) => {
+                  const isExpanded = expandedApprovals.has(u.id)
+                  const toggleExpand = () => setExpandedApprovals((prev) => {
+                    const next = new Set(prev)
+                    next.has(u.id) ? next.delete(u.id) : next.add(u.id)
+                    return next
+                  })
+                  return (
+                  <div key={u.id} className="border border-gray-200 rounded-xl overflow-hidden">
+                    {/* Header — always visible */}
+                    <div className="flex items-center gap-3 px-4 py-3 bg-gray-50">
+                      {/* Expand chevron */}
+                      <button
+                        type="button"
+                        onClick={toggleExpand}
+                        className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-200 transition-colors text-gray-500"
+                        title={isExpanded ? 'Collapse' : 'Expand details'}
+                      >
+                        <ChevronDown size={16} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {/* Name + summary */}
+                      <button type="button" onClick={toggleExpand} className="flex-1 min-w-0 text-left">
+                        <p className="font-semibold text-gray-900 text-sm">{u.full_name}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {u.email} · {u.phone} · Registered {u.created_at ? format(new Date(u.created_at), 'dd MMM yyyy') : '—'}
                         </p>
-                      </div>
+                      </button>
+
+                      {/* Approve / Reject */}
                       <div className="flex gap-2 flex-shrink-0">
                         <button
                           onClick={() => handleApprove(u.id)}
                           disabled={approvingUser === u.id || rejectingUser === u.id}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
                         >
-                          {approvingUser === u.id
-                            ? <Loader2 size={12} className="animate-spin" />
-                            : <UserCheck size={12} />}
+                          {approvingUser === u.id ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
                           Approve
                         </button>
                         <button
@@ -791,62 +869,151 @@ export default function AdminPage() {
                           disabled={approvingUser === u.id || rejectingUser === u.id}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
                         >
-                          {rejectingUser === u.id
-                            ? <Loader2 size={12} className="animate-spin" />
-                            : <UserX size={12} />}
+                          {rejectingUser === u.id ? <Loader2 size={12} className="animate-spin" /> : <UserX size={12} />}
                           Reject
                         </button>
                       </div>
                     </div>
 
-                    {/* Aadhar preview / status */}
-                    {u.aadhar_url ? (
-                      <div className="flex items-center gap-3 mt-1">
-                        {isAadharImage(u.aadhar_url) ? (
-                          <img
-                            src={u.aadhar_url}
-                            alt="Aadhar"
-                            className="h-16 w-24 object-cover rounded-lg border border-gray-200 bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => openAadhar(u.aadhar_url)}
-                          />
-                        ) : (
-                          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
-                            <FileText size={16} className="text-blue-600" />
-                            <span className="text-xs text-blue-700 font-medium">PDF</span>
+                    {/* Expandable details */}
+                    {isExpanded && (
+                    <div className="px-4 py-3 space-y-3 border-t border-gray-100">
+                      {/* Personal details — 2-column grid */}
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+                        {[
+                          ['Gender', u.gender ? u.gender.charAt(0).toUpperCase() + u.gender.slice(1) : '—'],
+                          ['T-Shirt', u.t_shirt_size || '—'],
+                          ['DOB', u.dob || '—'],
+                          ['Age', u.age ? `${u.age} yrs` : '—'],
+                          ['Address', u.address || '—'],
+                          ['Emergency Contact', u.emergency_contact || '—'],
+                          ['Emergency Phone', u.emergency_phone || '—'],
+                        ].map(([label, value]) => (
+                          <div key={label} className={label === 'Address' ? 'col-span-2' : ''}>
+                            <span className="text-gray-400 font-medium">{label}: </span>
+                            <span className="text-gray-700">{value}</span>
                           </div>
-                        )}
+                        ))}
+                      </div>
+
+                      {/* Member Profile section */}
+                      <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">
+                        <p className="text-xs font-semibold text-blue-800 mb-2">Member Profile</p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                          {u.photo_url && (
+                            <div className="col-span-2 mb-1">
+                              <img
+                                src={u.photo_url}
+                                alt="Profile"
+                                className="w-12 h-12 rounded-full object-cover border border-blue-200"
+                              />
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-blue-600 font-medium">Blood Group: </span>
+                            <span className="text-blue-900">{u.blood_group || '—'}</span>
+                          </div>
+                          <div>
+                            <span className="text-blue-600 font-medium">Profession: </span>
+                            <span className="text-blue-900">{u.profession || '—'}</span>
+                          </div>
+                          {u.work_details && (
+                            <div className="col-span-2">
+                              <span className="text-blue-600 font-medium">Work: </span>
+                              <span className="text-blue-900">{u.work_details}</span>
+                            </div>
+                          )}
+                          {u.interests && (
+                            <div className="col-span-2">
+                              <span className="text-blue-600 font-medium">Interests: </span>
+                              <span className="text-blue-900">{u.interests}</span>
+                            </div>
+                          )}
+                          {u.bio && (
+                            <div className="col-span-2">
+                              <span className="text-blue-600 font-medium">Bio: </span>
+                              <span className="text-blue-900">{u.bio}</span>
+                            </div>
+                          )}
+                          {u.strava_link && (
+                            <div className="col-span-2">
+                              <span className="text-blue-600 font-medium">Strava: </span>
+                              <a href={u.strava_link} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline hover:text-blue-900 break-all">{u.strava_link}</a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* References section */}
+                      {(u.ec_ref_name || u.member_ref_name) && (
+                        <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5">
+                          <p className="text-xs font-semibold text-amber-800 mb-1.5">References</p>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                            <div>
+                              <span className="text-amber-600 font-medium">EC Member: </span>
+                              <span className="text-amber-900">{u.ec_ref_name || '—'}</span>
+                              {u.ec_ref_phone && <span className="text-amber-700 ml-1">· {u.ec_ref_phone}</span>}
+                            </div>
+                            <div>
+                              <span className="text-amber-600 font-medium">Member: </span>
+                              <span className="text-amber-900">{u.member_ref_name || '—'}</span>
+                              {u.member_ref_phone && <span className="text-amber-700 ml-1">· {u.member_ref_phone}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Aadhar preview / status */}
+                      {u.aadhar_url ? (
+                        <div className="flex items-center gap-3">
+                          {isAadharImage(u.aadhar_url) ? (
+                            <img
+                              src={u.aadhar_url}
+                              alt="Aadhar"
+                              className="h-16 w-24 object-cover rounded-lg border border-gray-200 bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => openAadhar(u.aadhar_url)}
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
+                              <FileText size={16} className="text-blue-600" />
+                              <span className="text-xs text-blue-700 font-medium">PDF</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openAadhar(u.aadhar_url)}
+                              className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+                            >
+                              <FileText size={12} /> View
+                            </button>
+                            <button
+                              onClick={() => triggerAadharReplace(u.id, 'pending')}
+                              disabled={aadharReplaceLoading === u.id}
+                              className="text-xs text-gray-500 hover:text-brand-600 font-medium flex items-center gap-1 disabled:opacity-50"
+                            >
+                              {aadharReplaceLoading === u.id ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} Replace
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openAadhar(u.aadhar_url)}
-                            className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
-                          >
-                            <FileText size={12} /> View
-                          </button>
+                          <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                            ⚠ No Aadhar uploaded
+                          </span>
                           <button
                             onClick={() => triggerAadharReplace(u.id, 'pending')}
                             disabled={aadharReplaceLoading === u.id}
-                            className="text-xs text-gray-500 hover:text-brand-600 font-medium flex items-center gap-1 disabled:opacity-50"
+                            className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1 disabled:opacity-50"
                           >
-                            {aadharReplaceLoading === u.id ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} Replace
+                            {aadharReplaceLoading === u.id ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} Upload
                           </button>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
-                          ⚠ No Aadhar uploaded
-                        </span>
-                        <button
-                          onClick={() => triggerAadharReplace(u.id, 'pending')}
-                          disabled={aadharReplaceLoading === u.id}
-                          className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1 disabled:opacity-50"
-                        >
-                          {aadharReplaceLoading === u.id ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} Upload
-                        </button>
-                      </div>
+                      )}
+                    </div>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
             {/* deleteToast moved to top-level so it shows across tabs */}
@@ -1197,6 +1364,296 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* Member Detail / Edit Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+              <div className="min-w-0">
+                <h2 className="font-semibold text-gray-900 truncate">{editingUser.full_name}</h2>
+                <p className="text-xs text-gray-400 truncate">{editingUser.email}</p>
+              </div>
+              <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-gray-600 ml-4 flex-shrink-0">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Tab switcher */}
+            <div className="flex border-b border-gray-100 px-6 flex-shrink-0">
+              {[
+                { label: 'User Profile', key: 'view' },
+                { label: 'Runner Profile', key: 'runner' },
+                { label: 'Edit', key: 'edit' },
+              ].map(({ label, key }) => (
+                <button
+                  key={key}
+                  onClick={() => setModalTab(key)}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    modalTab === key
+                      ? 'border-brand-600 text-brand-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab: User Profile */}
+            {modalTab === 'view' && (
+              <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+                {/* Personal */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Personal</p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    {[
+                      ['Phone', editingUser.phone],
+                      ['Gender', editingUser.gender ? editingUser.gender.charAt(0).toUpperCase() + editingUser.gender.slice(1) : '—'],
+                      ['Age', editingUser.age ? `${editingUser.age} yrs` : '—'],
+                      ['DOB', editingUser.dob || '—'],
+                      ['Blood Group', editingUser.blood_group || '—'],
+                      ['T-Shirt', editingUser.t_shirt_size || '—'],
+                      ['Address', editingUser.address || '—'],
+                    ].map(([label, value]) => (
+                      <div key={label} className={label === 'Address' ? 'col-span-2' : ''}>
+                        <span className="text-xs text-gray-400">{label}</span>
+                        <p className="text-gray-800 mt-0.5">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Emergency Contacts */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Emergency Contacts</p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    {[
+                      ['Contact 1', editingUser.emergency_contact || '—'],
+                      ['Phone 1', editingUser.emergency_phone || '—'],
+                      ['Contact 2', editingUser.emergency_contact_2 || '—'],
+                      ['Phone 2', editingUser.emergency_phone_2 || '—'],
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <span className="text-xs text-gray-400">{label}</span>
+                        <p className="text-gray-800 mt-0.5">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* References */}
+                {(editingUser.ec_ref_name || editingUser.member_ref_name) && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">References</p>
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      {[
+                        ['EC Member Ref', editingUser.ec_ref_name || '—'],
+                        ['EC Ref Phone', editingUser.ec_ref_phone || '—'],
+                        ['Member Ref', editingUser.member_ref_name || '—'],
+                        ['Member Ref Phone', editingUser.member_ref_phone || '—'],
+                      ].map(([label, value]) => (
+                        <div key={label}>
+                          <span className="text-xs text-amber-600">{label}</span>
+                          <p className="text-amber-900 mt-0.5">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab: Runner Profile */}
+            {modalTab === 'runner' && (
+              <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+                {/* Membership */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Membership</p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    {[
+                      ['Member ID', editingUser.membership_id || '—'],
+                      ['Year', editingUser.membership_year],
+                      ['Valid Until', editingUser.end_date ? format(new Date(editingUser.end_date), 'dd MMM yyyy') : '—'],
+                      ...(editingUser.is_ec_member ? [
+                        ['EC Title', editingUser.ec_title || '—'],
+                        ['EC FY', editingUser.ec_fy || '—'],
+                      ] : []),
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <span className="text-xs text-gray-400">{label}</span>
+                        <p className="text-gray-800 mt-0.5">{value}</p>
+                      </div>
+                    ))}
+                    <div>
+                      <span className="text-xs text-gray-400">Status</span>
+                      <p className="mt-0.5">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_BADGE[editingUser.membership_status] || 'bg-gray-100 text-gray-600'}`}>
+                          {editingUser.membership_status}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Documents */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Documents</p>
+                  {editingUser.aadhar_url ? (
+                    <button
+                      onClick={() => openAadhar(editingUser.aadhar_url)}
+                      className="text-sm text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1.5"
+                    >
+                      <FileText size={14} /> View Aadhar
+                    </button>
+                  ) : (
+                    <p className="text-sm text-gray-400">No Aadhar uploaded</p>
+                  )}
+                </div>
+
+                {/* Account */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Account</p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    <div>
+                      <span className="text-xs text-gray-400">Account Status</span>
+                      <p className="text-gray-800 mt-0.5 capitalize">{editingUser.account_status}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400">Joined</span>
+                      <p className="text-gray-800 mt-0.5">{editingUser.created_at ? format(new Date(editingUser.created_at), 'dd MMM yyyy') : '—'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400">Admin</span>
+                      <p className="text-gray-800 mt-0.5">{editingUser.is_admin ? 'Yes' : 'No'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Strava */}
+                {editingUser.strava_link && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Strava</p>
+                    <a href={editingUser.strava_link} target="_blank" rel="noopener noreferrer" className="text-sm text-brand-600 hover:underline break-all">
+                      {editingUser.strava_link}
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab: Edit */}
+            {modalTab === 'edit' && (
+              <>
+                <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-4">
+                  {editError && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">{editError}</div>
+                  )}
+                  {[
+                    { label: 'Full Name', key: 'full_name', type: 'text' },
+                    { label: 'Email', key: 'email', type: 'email' },
+                    { label: 'Phone', key: 'phone', type: 'text' },
+                    { label: 'Age', key: 'age', type: 'number' },
+                  ].map(({ label, key, type }) => (
+                    <div key={key}>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                      <input
+                        type={type}
+                        value={editForm[key] || ''}
+                        onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
+                        className="input-field w-full"
+                      />
+                    </div>
+                  ))}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Gender</label>
+                    <select
+                      value={editForm.gender || ''}
+                      onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
+                      className="input-field w-full"
+                    >
+                      {['Male', 'Female', 'Other'].map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">T-Shirt Size</label>
+                    <select
+                      value={editForm.t_shirt_size || ''}
+                      onChange={(e) => setEditForm((f) => ({ ...f, t_shirt_size: e.target.value }))}
+                      className="input-field w-full"
+                    >
+                      <option value="">—</option>
+                      {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  {[
+                    { label: 'Emergency Contact Name', key: 'emergency_contact' },
+                    { label: 'Emergency Contact Phone', key: 'emergency_phone' },
+                  ].map(({ label, key }) => (
+                    <div key={key}>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                      <input
+                        type="text"
+                        value={editForm[key] || ''}
+                        onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
+                        className="input-field w-full"
+                      />
+                    </div>
+                  ))}
+
+                  {/* Admin Access toggle */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Admin Access</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Grants full admin panel access</p>
+                      </div>
+                      {PROTECTED_ADMINS.includes(editingUser.email?.toLowerCase()) ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-medium">
+                          <Crown size={12} /> Protected
+                        </span>
+                      ) : editingUser.user_id === user?.id ? (
+                        <span className="text-xs text-gray-400">Can't change own status</span>
+                      ) : (
+                        <button
+                          onClick={() => handleToggleAdmin(editingUser)}
+                          disabled={togglingAdmin === editingUser.user_id}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
+                            editingUser.is_admin
+                              ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+                          }`}
+                        >
+                          {togglingAdmin === editingUser.user_id
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : editingUser.is_admin
+                            ? <ShieldOff size={14} />
+                            : <Shield size={14} />}
+                          {editingUser.is_admin ? 'Remove Admin' : 'Make Admin'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+                  <button onClick={() => setEditingUser(null)} className="btn-outline flex-1 py-2.5">Cancel</button>
+                  <button onClick={handleSaveUser} disabled={savingUser} className="btn-primary flex-1 py-2.5">
+                    {savingUser ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : 'Save Changes'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Read-only tab footer — just close */}
+            {(modalTab === 'view' || modalTab === 'runner') && (
+              <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+                <button onClick={() => setEditingUser(null)} className="btn-outline w-full py-2.5">Close</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

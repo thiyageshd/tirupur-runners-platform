@@ -1,14 +1,16 @@
 import pyotp
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.models.models import User, Membership
 from app.schemas.schemas import (
     RegisterRequest, LoginRequest, OTPRequest,
     OTPVerifyRequest, TokenResponse, UserResponse, UpdateProfileRequest,
     MemberProfileResponse, MemberProfileUpdate,
     ForgotPasswordRequest, ResetPasswordRequest, PhotoUploadRequest,
-    ChangePasswordRequest, AadharUploadRequest,
+    ChangePasswordRequest, AadharUploadRequest, ValidateRefsRequest,
 )
 from app.services.user_service import UserService
 from app.core.security import get_current_user, hash_password, verify_password
@@ -35,6 +37,39 @@ async def check_phone(phone: str, db: AsyncSession = Depends(get_db)):
     if user:
         raise HTTPException(status_code=409, detail="Phone number already registered")
     return {"available": True}
+
+
+@router.post("/validate-references")
+async def validate_references(data: ValidateRefsRequest, db: AsyncSession = Depends(get_db)):
+    """Validate that ec_ref_phone belongs to an EC member and member_ref_phone to any existing member."""
+    ec_phone = data.ec_ref_phone.replace("+91", "").replace(" ", "").replace("-", "")[-10:]
+    member_phone = data.member_ref_phone.replace("+91", "").replace(" ", "").replace("-", "")[-10:]
+
+    # EC reference: must be a user with is_ec_member=True on any of their memberships
+    ec_result = await db.execute(
+        select(User)
+        .join(Membership, User.id == Membership.user_id)
+        .where(User.phone == ec_phone, Membership.is_ec_member == True)
+    )
+    ec_user = ec_result.scalars().first()
+    if not ec_user:
+        raise HTTPException(
+            status_code=400,
+            detail="EC reference phone not found or is not a current EC member",
+        )
+
+    # Member reference: must be any existing approved user
+    member_result = await db.execute(
+        select(User).where(User.phone == member_phone, User.account_status == "approved")
+    )
+    member_user = member_result.scalars().first()
+    if not member_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Member reference phone not found in our records",
+        )
+
+    return {"ec_name": ec_user.full_name, "member_name": member_user.full_name}
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)

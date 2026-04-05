@@ -19,6 +19,11 @@ class RegisterRequest(BaseModel):
     emergency_phone_2: Optional[str] = None
     password: Optional[str] = Field(None, min_length=8)
     t_shirt_size: str = Field(..., pattern=r"^(XS|S|M|L|XL|XXL|XXXL)$")
+    dob: date
+    ec_ref_name: str = Field(..., min_length=2, max_length=200)
+    ec_ref_phone: str = Field(..., min_length=10, max_length=20)
+    member_ref_name: str = Field(..., min_length=2, max_length=200)
+    member_ref_phone: str = Field(..., min_length=10, max_length=20)
 
 
 class LoginRequest(BaseModel):
@@ -124,6 +129,9 @@ class MembershipResponse(BaseModel):
     end_date: date
     status: str
     year: int
+    is_ec_member: bool = False
+    ec_title: Optional[str] = None
+    ec_fy: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -173,12 +181,42 @@ class MemberListItem(BaseModel):
     end_date: Optional[date]
     created_at: datetime
     aadhar_url: Optional[str] = None
+    dob: Optional[date] = None
+    # User address & emergency contacts
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    emergency_phone: Optional[str] = None
+    emergency_contact_2: Optional[str] = None
+    emergency_phone_2: Optional[str] = None
+    # Reference fields
+    ec_ref_name: Optional[str] = None
+    ec_ref_phone: Optional[str] = None
+    member_ref_name: Optional[str] = None
+    member_ref_phone: Optional[str] = None
+    # EC membership
+    is_ec_member: bool = False
+    ec_title: Optional[str] = None
+    ec_fy: Optional[str] = None
+    # Profile fields
+    blood_group: Optional[str] = None
+    strava_link: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
 
 class MembershipIdUpdateRequest(BaseModel):
     membership_id: str = Field(..., min_length=3, max_length=20)
+
+
+class AdminUserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    t_shirt_size: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    emergency_phone: Optional[str] = None
 
 
 class AdminStatsResponse(BaseModel):
@@ -236,5 +274,25 @@ class PendingUserItem(BaseModel):
     t_shirt_size: Optional[str] = None
     created_at: datetime
     aadhar_url: Optional[str] = None
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    emergency_phone: Optional[str] = None
+    dob: Optional[date] = None
+    ec_ref_name: Optional[str] = None
+    ec_ref_phone: Optional[str] = None
+    member_ref_name: Optional[str] = None
+    member_ref_phone: Optional[str] = None
+    blood_group: Optional[str] = None
+    strava_link: Optional[str] = None
+    photo_url: Optional[str] = None
+    profession: Optional[str] = None
+    work_details: Optional[str] = None
+    interests: Optional[str] = None
+    bio: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class ValidateRefsRequest(BaseModel):
+    ec_ref_phone: str
+    member_ref_phone: str

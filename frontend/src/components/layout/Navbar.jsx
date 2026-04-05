@@ -112,9 +112,19 @@ export default function Navbar() {
             </div>
           )}
           {user && (
-            <button onClick={handleLogout} className="text-left px-3 py-2.5 text-sm text-red-500 font-medium">
-              Logout
-            </button>
+            <>
+              {user.is_admin && (
+                <Link to="/admin" onClick={() => setOpen(false)} className="px-3 py-2.5 text-sm font-semibold text-brand-600">
+                  Admin Panel
+                </Link>
+              )}
+              <Link to="/members/dashboard" onClick={() => setOpen(false)} className="px-3 py-2.5 text-sm font-medium text-gray-700">
+                Dashboard
+              </Link>
+              <button onClick={handleLogout} className="text-left px-3 py-2.5 text-sm text-red-500 font-medium">
+                Logout
+              </button>
+            </>
           )}
         </div>
       )}
