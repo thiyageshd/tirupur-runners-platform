@@ -1,110 +1,235 @@
-import { useState, useEffect } from 'react'
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
-
-function daysInMonth(month, year) {
-  if (!month || !year) return 31
-  return new Date(parseInt(year), parseInt(month), 0).getDate()
-}
+import { useState, useEffect, useRef } from 'react'
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import {
+  format, getDaysInMonth, startOfMonth, getDay,
+  addMonths, subMonths, setYear as dfSetYear,
+  parse, isValid,
+} from 'date-fns'
 
 const currentYear = new Date().getFullYear()
-const MAX_YEAR = currentYear - 5    // min age 5
-const MIN_YEAR = currentYear - 100  // max age 100
+const MAX_YEAR = currentYear - 5   // min age 5
+const MIN_YEAR = currentYear - 100
 
 const YEARS = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => MAX_YEAR - i)
+const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+
+function parseISO(v) {
+  if (!v) return null
+  const d = parse(v, 'yyyy-MM-dd', new Date())
+  return isValid(d) ? d : null
+}
 
 /**
- * Mobile-friendly DOB picker using 3 select dropdowns (Day / Month / Year).
- * Works as a controlled component — `value` is "YYYY-MM-DD", `onChange` receives the same format.
- * Designed to integrate with react-hook-form's <Controller />.
+ * Modern DOB picker — calendar popup with month navigation + year grid.
+ * Controlled component: value = "YYYY-MM-DD", onChange receives same format.
  */
 export default function DOBPicker({ value, onChange, error }) {
-  const [day, setDay] = useState('')
-  const [month, setMonth] = useState('')
-  const [year, setYear] = useState('')
+  const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState('days') // 'days' | 'years'
+  const [selected, setSelected] = useState(parseISO(value))
+  const [viewDate, setViewDate] = useState(parseISO(value) || new Date(1995, 0, 1))
+  const containerRef = useRef(null)
+  const yearListRef = useRef(null)
 
-  // Parse initial / externally provided value
+  // Sync if parent resets value
   useEffect(() => {
-    if (value && typeof value === 'string' && value.length === 10) {
-      const [y, m, d] = value.split('-')
-      setYear(y || '')
-      setMonth(m ? String(parseInt(m, 10)) : '')
-      setDay(d ? String(parseInt(d, 10)) : '')
-    }
+    const d = parseISO(value)
+    setSelected(d)
+    if (d) setViewDate(d)
   }, [value])
 
-  const maxDays = daysInMonth(month, year)
-
-  const emit = (d, m, y) => {
-    if (d && m && y) {
-      onChange(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)
-    } else {
-      onChange('')
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false)
+        setMode('days')
+      }
     }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Scroll selected year into view when year grid opens
+  useEffect(() => {
+    if (mode === 'years' && yearListRef.current) {
+      const active = yearListRef.current.querySelector('[data-active="true"]')
+      active?.scrollIntoView({ block: 'center' })
+    }
+  }, [mode])
+
+  const viewYear = viewDate.getFullYear()
+  const viewMonth = viewDate.getMonth()
+
+  // Build calendar grid (nulls = leading empty cells)
+  const totalDays = getDaysInMonth(viewDate)
+  const startOffset = getDay(startOfMonth(viewDate)) // 0 = Sunday
+  const cells = [
+    ...Array(startOffset).fill(null),
+    ...Array.from({ length: totalDays }, (_, i) => i + 1),
+  ]
+
+  const selectDay = (day) => {
+    const d = new Date(viewYear, viewMonth, day)
+    setSelected(d)
+    onChange(format(d, 'yyyy-MM-dd'))
+    setOpen(false)
+    setMode('days')
   }
 
-  const handleDay = (v) => { setDay(v); emit(v, month, year) }
-
-  const handleMonth = (v) => {
-    const max = daysInMonth(v, year)
-    const safeDay = day && parseInt(day) > max ? String(max) : day
-    setMonth(v)
-    setDay(safeDay)
-    emit(safeDay, v, year)
+  const selectYear = (y) => {
+    setViewDate(dfSetYear(viewDate, y))
+    setMode('days')
   }
 
-  const handleYear = (v) => {
-    const max = daysInMonth(month, v)
-    const safeDay = day && parseInt(day) > max ? String(max) : day
-    setYear(v)
-    setDay(safeDay)
-    emit(safeDay, month, v)
+  const prevMonth = () => {
+    const prev = subMonths(viewDate, 1)
+    if (prev.getFullYear() >= MIN_YEAR) setViewDate(prev)
   }
 
-  const selectClass = `
-    w-full h-11 px-2 rounded-xl border text-sm font-medium
-    bg-white text-gray-900 appearance-none cursor-pointer
-    focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
-    ${error ? 'border-red-400' : 'border-gray-300'}
-  `
+  const nextMonth = () => {
+    const next = addMonths(viewDate, 1)
+    if (next.getFullYear() <= MAX_YEAR) setViewDate(next)
+  }
+
+  const isSelectedDay = (day) =>
+    selected &&
+    selected.getDate() === day &&
+    selected.getMonth() === viewMonth &&
+    selected.getFullYear() === viewYear
 
   return (
-    <div className="flex gap-2">
-      {/* Day */}
-      <div className="flex-1 min-w-0">
-        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1 text-center">Day</label>
-        <select value={day} onChange={(e) => handleDay(e.target.value)} className={selectClass}>
-          <option value="">—</option>
-          {Array.from({ length: maxDays }, (_, i) => i + 1).map((d) => (
-            <option key={d} value={String(d)}>{d}</option>
-          ))}
-        </select>
-      </div>
+    <div className="relative" ref={containerRef}>
+      {/* Trigger input */}
+      <button
+        type="button"
+        onClick={() => { setOpen((o) => !o); setMode('days') }}
+        className={`
+          w-full h-11 px-4 flex items-center justify-between rounded-xl border text-sm transition-all
+          bg-white font-medium
+          ${error
+            ? 'border-red-400 ring-2 ring-red-100'
+            : open
+            ? 'border-brand-500 ring-2 ring-brand-500/20'
+            : 'border-gray-300 hover:border-gray-400'
+          }
+        `}
+      >
+        <span className={selected ? 'text-gray-900' : 'text-gray-400'}>
+          {selected ? format(selected, 'd MMMM yyyy') : 'Select date of birth'}
+        </span>
+        <Calendar size={15} className={error ? 'text-red-400' : 'text-gray-400'} />
+      </button>
 
-      {/* Month */}
-      <div className="flex-[2] min-w-0">
-        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1 text-center">Month</label>
-        <select value={month} onChange={(e) => handleMonth(e.target.value)} className={selectClass}>
-          <option value="">—</option>
-          {MONTHS.map((name, i) => (
-            <option key={i + 1} value={String(i + 1)}>{name}</option>
-          ))}
-        </select>
-      </div>
+      {/* Popover */}
+      {open && (
+        <div className="absolute z-50 mt-2 left-0 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 w-72 select-none">
 
-      {/* Year */}
-      <div className="flex-[1.5] min-w-0">
-        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1 text-center">Year</label>
-        <select value={year} onChange={(e) => handleYear(e.target.value)} className={selectClass}>
-          <option value="">—</option>
-          {YEARS.map((y) => (
-            <option key={y} value={String(y)}>{y}</option>
-          ))}
-        </select>
-      </div>
+          {/* ── Day / Calendar view ── */}
+          {mode === 'days' && (
+            <>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  type="button"
+                  onClick={prevMonth}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMode('years')}
+                  className="text-sm font-semibold text-gray-900 hover:text-brand-600 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  {format(viewDate, 'MMMM yyyy')}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={nextMonth}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              {/* Weekday labels */}
+              <div className="grid grid-cols-7 mb-2">
+                {DAY_LABELS.map((d) => (
+                  <div key={d} className="text-center text-[10px] font-semibold text-gray-400 tracking-wide py-1">
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              {/* Day cells */}
+              <div className="grid grid-cols-7 gap-y-1">
+                {cells.map((day, i) =>
+                  day === null ? (
+                    <div key={`e-${i}`} />
+                  ) : (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => selectDay(day)}
+                      className={`
+                        w-9 h-9 mx-auto flex items-center justify-center rounded-full text-sm font-medium transition-colors
+                        ${isSelectedDay(day)
+                          ? 'bg-brand-600 text-white shadow-sm'
+                          : 'text-gray-700 hover:bg-brand-50 hover:text-brand-600'
+                        }
+                      `}
+                    >
+                      {day}
+                    </button>
+                  )
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── Year picker view ── */}
+          {mode === 'years' && (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-gray-900">Select Year</span>
+                <button
+                  type="button"
+                  onClick={() => setMode('days')}
+                  className="text-xs text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div
+                ref={yearListRef}
+                className="grid grid-cols-4 gap-1 max-h-56 overflow-y-auto pr-1"
+              >
+                {YEARS.map((y) => (
+                  <button
+                    key={y}
+                    type="button"
+                    data-active={y === viewYear}
+                    onClick={() => selectYear(y)}
+                    className={`
+                      py-2 rounded-xl text-sm font-medium transition-colors
+                      ${y === viewYear
+                        ? 'bg-brand-600 text-white'
+                        : 'text-gray-700 hover:bg-brand-50 hover:text-brand-600'
+                      }
+                    `}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

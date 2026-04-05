@@ -22,6 +22,9 @@ import argparse
 from datetime import date, datetime
 from pathlib import Path
 
+# Allow running from any directory (e.g. ssh root@vps → python scripts/import_dob.py)
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)

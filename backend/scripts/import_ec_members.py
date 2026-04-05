@@ -25,6 +25,9 @@ import asyncio
 import argparse
 from pathlib import Path
 
+# Allow running from any directory (e.g. ssh root@vps → python scripts/import_ec_members.py)
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
@@ -146,12 +149,10 @@ if __name__ == "__main__":
     from datetime import date as _date
     default_year = _date.today().year
 
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--file", required=True, help="Path to CSV/XLS/XLSX with EC member list")
-    # parser.add_argument("--year", type=int, default=default_year, help=f"Membership year to tag (default: {default_year})")
-    # parser.add_argument("--dry-run", action="store_true")
-    # args = parser.parse_args()
-    # asyncio.run(run(args.file, args.year, args.dry_run))
-    file_path = "scripts/Office_Bearers_25_26.xlsx"
-    asyncio.run(run(file_path, 2026, dry_run=True))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--file", default="scripts/Office_Bearers_25_26.xlsx", help="Path to CSV/XLS/XLSX with EC member list")
+    parser.add_argument("--year", type=int, default=default_year, help=f"Membership year to tag (default: {default_year})")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+    asyncio.run(run(args.file, args.year, args.dry_run))
 
