@@ -200,6 +200,10 @@ class MemberListItem(BaseModel):
     # Profile fields
     blood_group: Optional[str] = None
     strava_link: Optional[str] = None
+    profession: Optional[str] = None
+    work_details: Optional[str] = None
+    interests: Optional[str] = None
+    bio: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

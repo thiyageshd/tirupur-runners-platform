@@ -159,6 +159,10 @@ class MembershipService:
                 "ec_fy": membership.ec_fy,
                 "blood_group": profile.blood_group if profile else None,
                 "strava_link": profile.strava_link if profile else None,
+                "profession": profile.profession if profile else None,
+                "work_details": profile.work_details if profile else None,
+                "interests": profile.interests if profile else None,
+                "bio": profile.bio if profile else None,
             })
         return members
 
