@@ -1540,6 +1540,39 @@ export default function AdminPage() {
                     </a>
                   </div>
                 )}
+
+                {/* Runner Details */}
+                {(editingUser.profession || editingUser.work_details || editingUser.interests || editingUser.bio) && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Runner Details</p>
+                    <div className="space-y-2 text-sm">
+                      {editingUser.profession && (
+                        <div>
+                          <span className="text-xs text-gray-400">Profession</span>
+                          <p className="text-gray-800 mt-0.5">{editingUser.profession}</p>
+                        </div>
+                      )}
+                      {editingUser.work_details && (
+                        <div>
+                          <span className="text-xs text-gray-400">Work Details</span>
+                          <p className="text-gray-800 mt-0.5">{editingUser.work_details}</p>
+                        </div>
+                      )}
+                      {editingUser.interests && (
+                        <div>
+                          <span className="text-xs text-gray-400">Interests</span>
+                          <p className="text-gray-800 mt-0.5">{editingUser.interests}</p>
+                        </div>
+                      )}
+                      {editingUser.bio && (
+                        <div>
+                          <span className="text-xs text-gray-400">Bio</span>
+                          <p className="text-gray-800 mt-0.5">{editingUser.bio}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
