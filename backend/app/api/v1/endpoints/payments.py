@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.schemas.schemas import CreateOrderRequest, OrderResponse, PaymentVerifyRequest, PaymentHistoryItem
 from app.services.payment_service import PaymentService
+from app.services.membership_service import current_fiscal_year
 from app.models.models import Payment
 from app.core.security import get_current_user
 from app.core.config import settings
@@ -42,7 +43,7 @@ async def create_order(
             'rejected': 'Your registration has been rejected. Please contact the club for assistance.',
         }.get(account_status, 'Account not authorized to make payments.')
         raise HTTPException(status_code=403, detail=msg)
-    year = data.year or date.today().year
+    year = data.year or current_fiscal_year()
     svc = PaymentService(db)
     return await svc.create_order(current_user.id, year)
 

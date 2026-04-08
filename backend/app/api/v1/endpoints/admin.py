@@ -13,7 +13,7 @@ from sqlalchemy import select, func, and_
 
 from app.db.session import get_db
 from app.schemas.schemas import MemberListItem, AdminStatsResponse, UserResponse, OfflineUploadResult, TshirtUpdateRequest, PendingUserItem, MembershipIdUpdateRequest, AadharUploadRequest, AdminUserUpdate
-from app.services.membership_service import MembershipService
+from app.services.membership_service import MembershipService, current_fiscal_year
 from app.models.models import User, Membership, Payment, MemberProfile
 from app.core.security import get_current_admin
 from app.utils.email import send_approval_email, send_rejection_email
@@ -456,10 +456,9 @@ async def approve_user(
         raise HTTPException(status_code=400, detail="User is already approved")
     user.account_status = "approved"
     await db.flush()
-    # Auto-create a pending membership for the upcoming membership year.
-    # Use the current calendar year as the membership start year (Apr 1 -> Mar 31).
+    # Auto-create a pending membership for the current fiscal year (Apr 1 → Mar 31).
     try:
-        year = date.today().year
+        year = current_fiscal_year()
         membership_svc = MembershipService(db)
         await membership_svc.create_pending_membership(user.id, year)
         logger.info(f"Auto-created pending membership for user {user.email} year={year}")
