@@ -8,6 +8,13 @@ from app.models.models import Membership, User, MemberProfile
 from app.schemas.schemas import MembershipResponse
 
 
+def current_fiscal_year() -> int:
+    """Return the current fiscal year start (Apr 1 → Mar 31).
+    e.g. April 2026 → 2026 (FY 2026-27), January 2026 → 2025 (FY 2025-26)."""
+    today = date.today()
+    return today.year if today.month >= 4 else today.year - 1
+
+
 class MembershipService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -100,6 +107,13 @@ class MembershipService:
         membership = result.scalar_one_or_none()
         if not membership:
             raise HTTPException(status_code=404, detail="Membership not found")
+        # If the membership end_date is already past (e.g. payment captured late after FY end),
+        # bump it to the current fiscal year so sync_expired_statuses won't immediately re-expire it.
+        if membership.end_date < date.today():
+            fy = current_fiscal_year()
+            membership.year = fy
+            membership.start_date = date(fy, 4, 1)
+            membership.end_date = date(fy + 1, 3, 31)
         membership.status = "active"
         if not membership.membership_id:
             membership.membership_id = await self.generate_membership_id()

@@ -316,7 +316,10 @@ class PaymentService:
             logger.warning(f"_save_receipt_for_payment: {exc}")
 
     async def _reset_membership(self, payment: Payment) -> None:
-        """Set the linked membership back to 'expired' so the user can retry payment."""
+        """Reset the linked membership so the user can retry payment.
+        Uses 'pending' when the membership period is still in the future (correct state
+        for a new/renewal membership awaiting payment), 'expired' only if the period
+        has genuinely ended."""
         if not payment.membership_id:
             return
         result = await self.db.execute(
@@ -324,7 +327,7 @@ class PaymentService:
         )
         membership = result.scalar_one_or_none()
         if membership:
-            membership.status = "expired"
+            membership.status = "pending" if membership.end_date >= date.today() else "expired"
 
     async def sync_order_status(self, user_id) -> dict:
         """
@@ -394,7 +397,7 @@ class PaymentService:
                 )
                 membership = mem_result.scalar_one_or_none()
                 if membership:
-                    membership.status = "expired"
+                    membership.status = "pending" if membership.end_date >= date.today() else "expired"
             await self.db.flush()
             return {
                 "result": "reset",
@@ -410,7 +413,7 @@ class PaymentService:
                 )
                 membership = mem_result.scalar_one_or_none()
                 if membership:
-                    membership.status = "expired"
+                    membership.status = "pending" if membership.end_date >= date.today() else "expired"
             await self.db.flush()
             return {
                 "result": "reset",
