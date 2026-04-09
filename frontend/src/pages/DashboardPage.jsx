@@ -292,7 +292,7 @@ export default function DashboardPage() {
   const today = new Date()
   const currentYear = today.getFullYear()
   const isActive = membership?.status === 'active'
-  const canRenew = !membership || membership.status === 'expired' || membership.status === 'pending'
+  const canRenew = !membership || membership.status === 'expired' || membership.status === 'pending' || membership.status === 'pending_payment'
 
   // Show early-renewal option only in the final month before expiry
   const endDate = membership?.end_date ? new Date(membership.end_date) : null
@@ -304,7 +304,7 @@ export default function DashboardPage() {
 
   const renewLabel = !membership
     ? 'Get Membership — ₹2,000'
-    : membership.status === 'pending'
+    : (membership.status === 'pending' || membership.status === 'pending_payment')
     ? 'Complete Payment'
     : 'Renew Membership — ₹1,500'
 
