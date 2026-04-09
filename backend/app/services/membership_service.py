@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_, func, exists
 from fastapi import HTTPException
 
 from app.models.models import Membership, User, MemberProfile
@@ -130,6 +130,10 @@ class MembershipService:
         )
         if status_filter:
             query = query.where(Membership.status == status_filter)
+            # For expired tab: exclude users who have a newer active membership
+            if status_filter == "expired":
+                active_subq = select(Membership.user_id).where(Membership.status == "active")
+                query = query.where(~User.id.in_(active_subq))
 
         result = await self.db.execute(query)
         rows = result.all()
