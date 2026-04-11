@@ -13,6 +13,7 @@ from app.schemas.schemas import (
     ChangePasswordRequest, AadharUploadRequest, ValidateRefsRequest,
 )
 from app.services.user_service import UserService
+from app.services.membership_service import current_fiscal_year
 from app.core.security import get_current_user, hash_password, verify_password
 from app.core.uploads import save_aadhar_file, save_photo_file
 from app.utils.email import send_otp_email
@@ -45,11 +46,18 @@ async def validate_references(data: ValidateRefsRequest, db: AsyncSession = Depe
     ec_phone = data.ec_ref_phone.replace("+91", "").replace(" ", "").replace("-", "")[-10:]
     member_phone = data.member_ref_phone.replace("+91", "").replace(" ", "").replace("-", "")[-10:]
 
-    # EC reference: must be a user with is_ec_member=True on any of their memberships
+    if ec_phone == member_phone:
+        raise HTTPException(
+            status_code=400,
+            detail="EC reference and member reference must be two different people",
+        )
+
+    # EC reference: must be a user with is_ec_member=True on the current fiscal year membership
+    current_fy = current_fiscal_year()
     ec_result = await db.execute(
         select(User)
         .join(Membership, User.id == Membership.user_id)
-        .where(User.phone == ec_phone, Membership.is_ec_member == True)
+        .where(User.phone == ec_phone, Membership.is_ec_member == True, Membership.year == current_fy)
     )
     ec_user = ec_result.scalars().first()
     if not ec_user:
