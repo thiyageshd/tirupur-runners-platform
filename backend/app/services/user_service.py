@@ -109,6 +109,12 @@ class UserService:
             raise HTTPException(status_code=404, detail="User not found")
         for field, value in data.model_dump(exclude_none=True).items():
             setattr(user, field, value)
+        # Auto-compute age from dob if dob was updated
+        if data.dob:
+            from datetime import date as _date
+            today = _date.today()
+            age = today.year - data.dob.year - ((today.month, today.day) < (data.dob.month, data.dob.day))
+            user.age = age
         await self.db.flush()
         return user
 

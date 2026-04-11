@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore'
 import { membershipApi, paymentApi, authApi } from '../api'
 import MembershipBadge from '../components/ui/MembershipBadge'
 import FormField from '../components/ui/FormField'
+import DOBPicker from '../components/ui/DOBPicker'
 
 export default function DashboardPage() {
   const { user, logout, fetchMe } = useAuthStore()
@@ -23,7 +24,7 @@ export default function DashboardPage() {
   const [profileTab, setProfileTab] = useState('user')
   const navigate = useNavigate()
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm()
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm()
   const fileInputRef = useRef(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
@@ -76,7 +77,7 @@ export default function DashboardPage() {
       reset({
         full_name: user?.full_name,
         phone: user?.phone,
-        age: user?.age,
+        dob: user?.dob || '',
         gender: user?.gender,
         address: user?.address || '',
         emergency_contact: user?.emergency_contact || '',
@@ -464,7 +465,8 @@ export default function DashboardPage() {
                   ['Full Name', user?.full_name],
                   ['Email', user?.email],
                   ['Phone', user?.phone],
-                  ['Age', user?.age],
+                  ['Date of Birth', user?.dob ? format(new Date(user.dob), 'd MMM yyyy') : '—'],
+                  ['Age', user?.age ? `${user.age} yrs` : '—'],
                   ['Gender', user?.gender],
                   ['Emergency Contact', user?.emergency_contact || '—'],
                   ['Emergency Phone', user?.emergency_phone || '—'],
@@ -559,11 +561,18 @@ export default function DashboardPage() {
                     pattern: { value: /^[6-9]\d{9}$/, message: 'Invalid phone' }
                   })} />
                 </FormField>
-                <FormField label="Age" required error={errors.age?.message}>
-                  <input type="number" className="input-field" {...register('age', {
-                    required: 'Required', valueAsNumber: true,
-                    min: { value: 5, message: 'Min 5' }, max: { value: 100, message: 'Max 100' }
-                  })} />
+                <FormField label="Date of Birth" error={errors.dob?.message}>
+                  <DOBPicker
+                    value={watch('dob') || ''}
+                    onChange={(val) => setValue('dob', val)}
+                    error={errors.dob?.message}
+                  />
+                  {watch('dob') && (() => {
+                    const d = new Date(watch('dob'))
+                    const today = new Date()
+                    const age = today.getFullYear() - d.getFullYear() - ((today.getMonth() * 100 + today.getDate()) < (d.getMonth() * 100 + d.getDate()) ? 1 : 0)
+                    return <p className="text-xs text-gray-500 mt-1">Age: {age} yrs</p>
+                  })()}
                 </FormField>
                 <FormField label="Gender" required error={errors.gender?.message}>
                   <select className="input-field" {...register('gender', { required: 'Required' })}>

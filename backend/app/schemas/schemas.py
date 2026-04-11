@@ -43,6 +43,7 @@ class OTPVerifyRequest(BaseModel):
 class UpdateProfileRequest(BaseModel):
     full_name: Optional[str] = Field(None, min_length=2, max_length=200)
     phone: Optional[str] = Field(None, pattern=r"^\+?[6-9]\d{9}$")
+    dob: Optional[date] = None
     age: Optional[int] = Field(None, ge=5, le=100)
     gender: Optional[str] = Field(None, pattern=r"^(male|female|other|not_specified)$")
     address: Optional[str] = Field(None, max_length=500)
@@ -104,6 +105,7 @@ class UserResponse(BaseModel):
     email: str
     phone: str
     age: int
+    dob: Optional[date] = None
     gender: str
     address: Optional[str]
     emergency_contact: Optional[str]
