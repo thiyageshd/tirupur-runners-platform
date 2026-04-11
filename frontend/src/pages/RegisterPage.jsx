@@ -442,6 +442,7 @@ export default function RegisterPage() {
                         {...register('ec_ref_phone', {
                           required: 'EC member phone is required',
                           minLength: { value: 10, message: 'Enter a valid 10-digit phone' },
+                          maxLength: { value: 10, message: 'Enter a valid 10-digit phone' },
                         })}
                       />
                     </FormField>
@@ -462,6 +463,7 @@ export default function RegisterPage() {
                         {...register('member_ref_phone', {
                           required: 'Member phone is required',
                           minLength: { value: 10, message: 'Enter a valid 10-digit phone' },
+                          maxLength: { value: 10, message: 'Enter a valid 10-digit phone' },
                         })}
                       />
                     </FormField>
