@@ -5,7 +5,7 @@ import razorpay
 from typing import Optional
 from datetime import date, datetime, timezone, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, and_, or_
 from fastapi import HTTPException
 
 from app.models.models import Payment, Membership, User
@@ -45,11 +45,18 @@ class PaymentService:
         )
         if result.scalars().first() is not None:
             return True
-        # Also treat imported members (expired membership, no payment record) as renewals
+        # Also treat imported members (expired/active membership, no payment record) as renewals
+        # Also catch the edge case: offline member whose membership was reset to pending_payment
+        # but had a membership in a prior year (year < current year)
+        from app.services.membership_service import current_fiscal_year
+        current_fy = current_fiscal_year()
         result = await self.db.execute(
             select(Membership).where(
                 Membership.user_id == user_id,
-                Membership.status.in_(["expired", "active"]),
+                or_(
+                    Membership.status.in_(["expired", "active"]),
+                    and_(Membership.status == "pending_payment", Membership.year < current_fy),
+                ),
             )
         )
         return result.scalars().first() is not None
@@ -209,48 +216,44 @@ class PaymentService:
 
         for payment in payments:
             try:
-                rz_order = self.rz.order.fetch(payment.razorpay_order_id)
-                order_status = rz_order.get("status")
+                async with self.db.begin_nested():  # savepoint per payment
+                    rz_order = self.rz.order.fetch(payment.razorpay_order_id)
+                    order_status = rz_order.get("status")
 
-                if order_status == "paid":
-                    rz_payments = self.rz.order.payments(payment.razorpay_order_id)
-                    captured = next(
-                        (p for p in rz_payments.get("items", []) if p["status"] == "captured"),
-                        None,
-                    )
-                    if captured:
-                        payment.razorpay_payment_id = captured["id"]
-                    payment.status = "paid"
-                    if payment.membership_id:
-                        membership_svc = MembershipService(self.db)
-                        await membership_svc.activate_membership(payment.membership_id)
-                    await self._save_receipt_for_payment(payment)
-                    logger.info(f"Auto-activated membership for payment {payment.id}")
+                    if order_status == "paid":
+                        rz_payments = self.rz.order.payments(payment.razorpay_order_id)
+                        captured = next(
+                            (p for p in rz_payments.get("items", []) if p["status"] == "captured"),
+                            None,
+                        )
+                        if captured:
+                            payment.razorpay_payment_id = captured["id"]
+                        payment.status = "paid"
+                        if payment.membership_id:
+                            membership_svc = MembershipService(self.db)
+                            await membership_svc.activate_membership(payment.membership_id)
+                        await self._save_receipt_for_payment(payment)
+                        logger.info(f"Auto-activated membership for payment {payment.id}")
 
-                elif order_status == "attempted":
-                    rz_payments = self.rz.order.payments(payment.razorpay_order_id)
-                    items = rz_payments.get("items", [])
-                    in_flight = any(p["status"] in ("created", "authorized") for p in items)
-                    if not in_flight:
-                        # All attempts failed — reset
+                    elif order_status == "attempted":
+                        rz_payments = self.rz.order.payments(payment.razorpay_order_id)
+                        items = rz_payments.get("items", [])
+                        in_flight = any(p["status"] in ("created", "authorized") for p in items)
+                        if not in_flight:
+                            # All attempts failed — reset
+                            payment.status = "failed"
+                            await self._reset_membership(payment)
+                            logger.info(f"Auto-reset membership for failed payment {payment.id}")
+
+                    elif order_status == "created":
+                        # Never attempted — reset
                         payment.status = "failed"
                         await self._reset_membership(payment)
-                        logger.info(f"Auto-reset membership for failed payment {payment.id}")
-
-                elif order_status == "created":
-                    # Never attempted — reset
-                    payment.status = "failed"
-                    await self._reset_membership(payment)
-                    logger.info(f"Auto-reset membership for abandoned payment {payment.id}")
+                        logger.info(f"Auto-reset membership for abandoned payment {payment.id}")
 
             except Exception as exc:
                 logger.warning(f"sync_stale_payments: skipping payment {payment.id}: {exc}")
 
-        if payments:
-            try:
-                await self.db.flush()
-            except Exception as exc:
-                logger.warning(f"sync_stale_payments flush error: {exc}")
 
     def _make_receipt_html(self, payment: Payment, user) -> str:
         year_str = payment.idempotency_key.split(":")[-1] if payment.idempotency_key else ""
