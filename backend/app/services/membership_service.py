@@ -90,15 +90,22 @@ class MembershipService:
         return membership
 
     async def generate_membership_id(self) -> str:
-        """Generate next membership ID in format YYYYMMTRnn (e.g. 202603TR01)."""
+        """Generate next membership ID in format YYYYMMTRn (e.g. 202604TR101).
+        Uses integer ordering on the numeric suffix to avoid string-sort issues
+        (e.g. TR99 > TR100 lexicographically but TR100 > TR99 numerically)."""
+        from sqlalchemy import cast, Integer as SAInteger
         prefix = datetime.now().strftime("%Y%m") + "TR"
+        suffix_expr = cast(
+            func.substr(Membership.membership_id, len(prefix) + 1),
+            SAInteger
+        )
         result = await self.db.execute(
-            select(func.max(Membership.membership_id))
+            select(func.max(suffix_expr))
             .where(Membership.membership_id.like(f"{prefix}%"))
         )
-        last_id = result.scalar()
-        seq = (int(last_id[len(prefix):]) + 1) if last_id else 1
-        return f"{prefix}{seq:02d}"
+        last_seq = result.scalar()
+        seq = (last_seq + 1) if last_seq else 1
+        return f"{prefix}{seq}"
 
     async def activate_membership(self, membership_id) -> Membership:
         result = await self.db.execute(
