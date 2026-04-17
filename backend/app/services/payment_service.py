@@ -319,17 +319,35 @@ class PaymentService:
             logger.warning(f"_save_receipt_for_payment: {exc}")
 
     async def _reset_membership(self, payment: Payment) -> None:
-        """Reset the linked membership so the user can retry payment.
-        Uses 'pending' when the membership period is still in the future (correct state
-        for a new/renewal membership awaiting payment), 'expired' only if the period
-        has genuinely ended."""
+        """Reset the linked membership on payment failure.
+        - Renewal members: delete the pending renewal membership so the user
+          correctly appears as 'expired' (their prior membership) in the admin view.
+        - New members: keep as 'pending' so they can retry payment."""
         if not payment.membership_id:
             return
         result = await self.db.execute(
             select(Membership).where(Membership.id == payment.membership_id)
         )
         membership = result.scalar_one_or_none()
-        if membership:
+        if not membership:
+            return
+
+        # Check if the user has any prior paid/expired membership (i.e. this is a renewal)
+        prior_result = await self.db.execute(
+            select(Membership).where(
+                Membership.user_id == payment.user_id,
+                Membership.id != membership.id,
+                Membership.status.in_(["active", "expired"]),
+            )
+        )
+        has_prior = prior_result.scalars().first() is not None
+
+        if has_prior:
+            # Renewal failure: delete the unactivated pending membership.
+            # payments.membership_id has ON DELETE SET NULL so this is safe.
+            self.db.delete(membership)
+        else:
+            # New member failure: keep as pending so they can retry.
             membership.status = "pending" if membership.end_date >= date.today() else "expired"
 
     async def sync_order_status(self, user_id) -> dict:
@@ -394,13 +412,7 @@ class PaymentService:
 
             # All attempts failed — safe to reset membership so user can retry
             payment.status = "failed"
-            if payment.membership_id:
-                mem_result = await self.db.execute(
-                    select(Membership).where(Membership.id == payment.membership_id)
-                )
-                membership = mem_result.scalar_one_or_none()
-                if membership:
-                    membership.status = "pending" if membership.end_date >= date.today() else "expired"
+            await self._reset_membership(payment)
             await self.db.flush()
             return {
                 "result": "reset",
@@ -410,13 +422,7 @@ class PaymentService:
         else:
             # order_status == "created" — order was never attempted, user abandoned checkout
             payment.status = "failed"
-            if payment.membership_id:
-                mem_result = await self.db.execute(
-                    select(Membership).where(Membership.id == payment.membership_id)
-                )
-                membership = mem_result.scalar_one_or_none()
-                if membership:
-                    membership.status = "pending" if membership.end_date >= date.today() else "expired"
+            await self._reset_membership(payment)
             await self.db.flush()
             return {
                 "result": "reset",
