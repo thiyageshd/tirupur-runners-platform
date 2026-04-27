@@ -59,11 +59,11 @@ class TokenResponse(BaseModel):
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: str
+    email: EmailStr
 
 
 class ResetPasswordRequest(BaseModel):
-    email: str
+    email: EmailStr
     otp: str
     new_password: str = Field(..., min_length=8)
 
