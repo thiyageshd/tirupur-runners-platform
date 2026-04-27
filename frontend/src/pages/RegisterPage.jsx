@@ -247,7 +247,10 @@ export default function RegisterPage() {
                     placeholder="you@example.com"
                     {...register('email', {
                       required: 'Email is required',
-                      pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email' },
+                      pattern: {
+                        value: /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/,
+                        message: 'Enter a valid email address',
+                      },
                     })}
                   />
                 </FormField>
