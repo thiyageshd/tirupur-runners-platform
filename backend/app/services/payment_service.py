@@ -345,7 +345,7 @@ class PaymentService:
         if has_prior:
             # Renewal failure: delete the unactivated pending membership.
             # payments.membership_id has ON DELETE SET NULL so this is safe.
-            self.db.delete(membership)
+            await self.db.delete(membership)
         else:
             # New member failure: keep as pending so they can retry.
             membership.status = "pending" if membership.end_date >= date.today() else "expired"
