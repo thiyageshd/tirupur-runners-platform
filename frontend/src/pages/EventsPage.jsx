@@ -17,14 +17,13 @@ const EVENTS = [
   },
   {
     title: 'Toplight Tirupur Runners Marathon powered by Techno Sport',
-    date: 'Date TBA — Stay Tuned!',
+    date: '2 Aug 2026',
     time: '5:00 AM',
     location: 'Tirupur City Circuit',
     category: 'Marathon',
-  desc: `Annual flagship event with 5K, 10K & 21K categories. 6000+ runners expected.
-          Register at toplighttirupurrunnersmarathon.com — Watch this space.`,
+    desc: `Annual flagship event with 5K, 10K & 21K categories. 6000+ runners expected.`,
     color: 'purple',
-    dateTba: true,
+    registrationUrl: 'https://trm.myraceindia.com/',
   },
   {
     title: 'Trail Running Weekend',
@@ -76,9 +75,9 @@ export default function EventsPage() {
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${BADGE_COLORS[event.color]}`}>
                     {event.category}
                   </span>
-                  {event.dateTba && (
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
-                      🎯 Coming Soon
+                  {event.registrationUrl && (
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">
+                      🟢 Registration Open
                     </span>
                   )}
                 </div>
@@ -89,7 +88,7 @@ export default function EventsPage() {
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                  <span className={`flex items-center gap-1.5 ${event.dateTba ? 'text-gray-400 italic' : ''}`}>
+                  <span className="flex items-center gap-1.5">
                     <Calendar size={14} /> {event.date}
                   </span>
                   <span className="flex items-center gap-1.5"><Clock size={14} /> {event.time}</span>
@@ -109,6 +108,18 @@ export default function EventsPage() {
                     )}
                   </span>
                 </div>
+                {event.registrationUrl && (
+                  <div className="mt-4">
+                    <a
+                      href={event.registrationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 btn-primary text-sm py-2 px-5"
+                    >
+                      Register Now <ExternalLink size={13} />
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           ))}
