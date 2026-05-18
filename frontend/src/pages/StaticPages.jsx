@@ -32,7 +32,7 @@ export function AboutPage() {
           <div className="w-60 rounded-2xl overflow-hidden shadow-lg ring-1 ring-gray-100">
             <img
               src="https://racemart.in/storage/poster/poster-1748432314814.png"
-              alt="Toplight Tirupur Runners Marathon powered by Techno Sport — Coming Soon"
+              alt="Toplight Tirupur Runners Marathon powered by Techno Sport — 2 Aug 2026"
               className="w-full h-auto block"
               onError={(e) => { e.target.parentElement.style.display = 'none' }}
             />
@@ -44,13 +44,23 @@ export function AboutPage() {
             { emoji: '🌅', title: 'Our Mission', desc: 'Inspire the city to lace up, show up, and run together — promoting health, fitness, and community spirit across Tirupur and Tamil Nadu.' },
             { emoji: '🤝', title: 'Community First', desc: 'Over 250 active runners. Every runner matters — from first-timers to ultramarathoners. We train and grow together as one community.' },
             { emoji: '🏙️', title: 'Rooted in Tirupur', desc: "Proud to represent Tirupur — India's knitwear capital — on the national running map since 2013." },
-            { emoji: '🏆', title: 'Tirupur Runners Marathon', desc: 'We organize the Toplight Tirupur Runners Marathon powered by Techno Sport — a beloved Tamil Nadu event drawing 6000+ runners. Next edition: Coming Soon.' },
+            { emoji: '🏆', title: 'Tirupur Runners Marathon', desc: 'We organize the Toplight Tirupur Runners Marathon powered by Techno Sport — a beloved Tamil Nadu event drawing 6000+ runners. Next edition: 2 Aug 2026.', link: { label: 'Register at trm.myraceindia.com', url: 'https://trm.myraceindia.com/' } },
           ].map((item) => (
             <div key={item.title} className="card flex gap-4">
               <span className="text-3xl">{item.emoji}</span>
               <div>
                 <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                {item.link && (
+                  <a
+                    href={item.link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline mt-1.5"
+                  >
+                    {item.link.label} <ExternalLink size={12} />
+                  </a>
+                )}
               </div>
             </div>
           ))}
