@@ -24,6 +24,7 @@ class RegisterRequest(BaseModel):
     ec_ref_phone: str = Field(..., min_length=10, max_length=20)
     member_ref_name: str = Field(..., min_length=2, max_length=200)
     member_ref_phone: str = Field(..., min_length=10, max_length=20)
+    pan_card: str = Field(..., min_length=10, max_length=10, pattern=r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$")
 
 
 class LoginRequest(BaseModel):
@@ -51,6 +52,7 @@ class UpdateProfileRequest(BaseModel):
     emergency_phone: Optional[str] = None
     emergency_contact_2: Optional[str] = Field(None, max_length=200)
     emergency_phone_2: Optional[str] = None
+    pan_card: Optional[str] = Field(None, max_length=10, pattern=r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$")
 
 
 class TokenResponse(BaseModel):
@@ -115,6 +117,7 @@ class UserResponse(BaseModel):
     account_status: str = "approved"
     is_admin: bool
     t_shirt_size: Optional[str] = None
+    pan_card: Optional[str] = None
     profile: Optional[MemberProfileResponse] = None
     created_at: datetime
 
@@ -199,6 +202,7 @@ class MemberListItem(BaseModel):
     is_ec_member: bool = False
     ec_title: Optional[str] = None
     ec_fy: Optional[str] = None
+    pan_card: Optional[str] = None
     # Profile fields
     blood_group: Optional[str] = None
     strava_link: Optional[str] = None
@@ -288,6 +292,7 @@ class PendingUserItem(BaseModel):
     ec_ref_phone: Optional[str] = None
     member_ref_name: Optional[str] = None
     member_ref_phone: Optional[str] = None
+    pan_card: Optional[str] = None
     blood_group: Optional[str] = None
     strava_link: Optional[str] = None
     photo_url: Optional[str] = None

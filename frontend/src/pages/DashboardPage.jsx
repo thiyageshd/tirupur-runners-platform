@@ -84,6 +84,7 @@ export default function DashboardPage() {
         emergency_phone: user?.emergency_phone || '',
         emergency_contact_2: user?.emergency_contact_2 || '',
         emergency_phone_2: user?.emergency_phone_2 || '',
+        pan_card: user?.pan_card || '',
       })
     } else {
       reset({
@@ -484,9 +485,13 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Aadhar */}
+              {/* Documents */}
               <div className="border-t border-gray-100 pt-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Documents</p>
+                <div className="mb-4">
+                  <p className="text-xs text-gray-400 mb-0.5">PAN Card</p>
+                  <p className="text-sm font-medium text-gray-800 font-mono">{user?.pan_card || '—'}</p>
+                </div>
                 <div>
                   <p className="text-xs text-gray-400 mb-2">Aadhar Card</p>
                   <div className="flex items-center gap-3 flex-wrap">
@@ -600,6 +605,20 @@ export default function DashboardPage() {
                   <input className="input-field" placeholder="Phone number (optional)" {...register('emergency_phone_2')} />
                 </FormField>
               </div>
+              <FormField label="PAN Card Number" error={errors.pan_card?.message}>
+                <input
+                  className="input-field uppercase"
+                  placeholder="e.g. ABCDE1234F"
+                  maxLength={10}
+                  {...register('pan_card', {
+                    pattern: {
+                      value: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
+                      message: 'Enter a valid PAN (e.g. ABCDE1234F)',
+                    },
+                    setValueAs: (v) => v?.toUpperCase(),
+                  })}
+                />
+              </FormField>
 
               {saveError && (
                 <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{saveError}</p>
