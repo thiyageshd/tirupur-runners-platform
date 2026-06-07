@@ -46,7 +46,7 @@ export default function RegisterPage() {
     ['full_name', 'email', 'password', 'confirm_password'],
     ['phone', 'dob', 'gender', 't_shirt_size', 'ec_ref_name', 'ec_ref_phone', 'member_ref_name', 'member_ref_phone'],
     ['blood_group'], // Runner Profile — blood group is required
-    [], // Documents
+    ['pan_card'], // Documents
   ]
 
   const nextStep = async () => {
@@ -123,7 +123,7 @@ export default function RegisterPage() {
       const age = computeAge(data.dob)
 
       // 1. Register user
-      await authApi.register({ ...data, age })
+      await authApi.register({ ...data, age, pan_card: data.pan_card?.toUpperCase() })
       userCreated = true
 
       // 2. Get temp token for uploads only — do NOT store in auth state (no auto-login)
@@ -592,8 +592,24 @@ export default function RegisterPage() {
               <div className="flex flex-col gap-5">
                 <div>
                   <h2 className="font-semibold text-gray-900 text-lg mb-1">Upload documents</h2>
-                  <p className="text-sm text-gray-500">Aadhar card is required for identity verification before approval.</p>
+                  <p className="text-sm text-gray-500">PAN card number and Aadhar are required for identity verification before approval.</p>
                 </div>
+
+                <FormField label="PAN Card Number" required error={errors.pan_card?.message}>
+                  <input
+                    className="input-field uppercase"
+                    placeholder="e.g. ABCDE1234F"
+                    maxLength={10}
+                    {...register('pan_card', {
+                      required: 'PAN card number is required',
+                      pattern: {
+                        value: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
+                        message: 'Enter a valid PAN (e.g. ABCDE1234F)',
+                      },
+                      setValueAs: (v) => v?.toUpperCase(),
+                    })}
+                  />
+                </FormField>
 
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-2">

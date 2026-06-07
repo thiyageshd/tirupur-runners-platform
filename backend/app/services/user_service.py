@@ -83,6 +83,7 @@ class UserService:
             ec_ref_phone=data.ec_ref_phone,
             member_ref_name=data.member_ref_name,
             member_ref_phone=data.member_ref_phone,
+            pan_card=data.pan_card.upper() if data.pan_card else None,
         )
         self.db.add(user)
         await self.db.flush()

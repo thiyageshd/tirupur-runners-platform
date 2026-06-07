@@ -33,6 +33,7 @@ class User(Base):
     ec_ref_phone = Column(String(20), nullable=True)
     member_ref_name = Column(String(200), nullable=True)
     member_ref_phone = Column(String(20), nullable=True)
+    pan_card = Column(String(20), nullable=True)
     account_status = Column(String(20), nullable=False, default="approved")
     t_shirt_size = Column(String(10), nullable=True)
     hashed_password = Column(String(255), nullable=True)
